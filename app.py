@@ -77,10 +77,7 @@ def execute_query(query, params=()):
 
 def load_all_data():
     conn = get_db_connection()
-    # Get the currently logged-in user name/email from session state
     current_user = st.session_state.get("user", "Faiz")
-    
-    # Filter the query so it only fetches leads belonging to the active user
     query = "SELECT * FROM leads WHERE assigned_user = %s ORDER BY system_date_added DESC"
     df = pd.read_sql_query(query, conn, params=(current_user,))
     conn.close()
