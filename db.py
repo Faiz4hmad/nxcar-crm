@@ -4,8 +4,9 @@ import streamlit as st
 from datetime import datetime
 
 def get_db_connection():
-    # Connects using the secure Supabase URL from secrets.toml
-    return psycopg2.connect(st.secrets["DB_URL"])
+    # Connecting to Supabase PostgreSQL with explicit cloud SSL parameters
+    url = st.secrets["DB_URL"]
+    return psycopg2.connect(url, sslmode='require')
 
 def init_db():
     conn = get_db_connection()
