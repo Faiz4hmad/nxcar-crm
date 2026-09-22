@@ -6,21 +6,8 @@ from datetime import datetime
 import urllib.parse as urlparse
 
 def get_db_connection():
-    url = urlparse.urlparse(st.secrets["DB_URL"])
-    dbname = url.path[1:]
-    user = url.username
-    password = url.password
-    host = url.hostname
-    port = url.port
-    
-    return psycopg2.connect(
-        dbname=dbname,
-        user=user,
-        password=password,
-        host=host,
-        port=port,
-        sslmode='require'
-    )
+    # Connect directly to Supabase using the Streamlit secret URL string
+    return psycopg2.connect(st.secrets["DB_URL"])
 
 def init_db():
     conn = get_db_connection()
