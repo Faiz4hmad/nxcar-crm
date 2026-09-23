@@ -78,7 +78,10 @@ def execute_query(query, params=()):
 def load_all_data():
     conn = get_db_connection()
     current_user = st.session_state.get("user", "Faiz")
-    query = "SELECT * FROM leads WHERE assigned_user = %s ORDER BY system_date_added DESC"
+
+    # Use the exact column name we found in Supabase
+    query = "SELECT * FROM leads WHERE ra_assigned = %s ORDER BY system_date_added DESC"
+
     df = pd.read_sql_query(query, conn, params=(current_user,))
     conn.close()
     return df
