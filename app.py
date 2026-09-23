@@ -77,7 +77,7 @@ def execute_query(query, params=()):
 
 def load_all_data():
     conn = get_db_connection()
-    current_user = st.session_state.get("user", "Faiz")
+    current_user = st.session_state.get("current_user", "Faiz")
 
     # Use the exact column name we found in Supabase
     query = "SELECT * FROM leads WHERE ra_assigned = %s ORDER BY system_date_added DESC"
