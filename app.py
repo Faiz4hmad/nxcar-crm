@@ -424,14 +424,16 @@ with tab_active:
                                         
                                             
                                         exp_hist = row.get('expectation_history', '') if pd.notna(row.get('expectation_history', '')) else ""
-                                        if str(u_exp) != str(row['customer_expectation']):
-                                            exp_hist += f"[{now_str}] ₹{row['customer_expectation']} ➡️ ₹{u_exp}\n"
-                                            
-                                        execute_query('''UPDATE leads SET customer_expectation=%s, calling_status=%s, 
+                                        if st.button("💾 Save Edits", key=f"save_{v_no}"):
+                                            exp_hist = row.get('expectation_history', '') if pd.notna(row.get('expectation_history', '')) else ""
+                                            if str(u_exp) != str(row['customer_expectation']):
+                                                exp_hist += f"[{now_str}] ₹{row['customer_expectation']} ➡️ ₹{u_exp}\n"
+
+                                            execute_query('''UPDATE leads SET customer_expectation=%s, calling_status=%s, 
                                                              expectation_history=%s, ra_name=%s, local_lock=1 WHERE vehicle_no=%s''', 
-                                                          (u_exp, u_status, exp_hist, u_ra, v_no))
-                                        st.cache_data.clear()
-                                        st.rerun()
+                                                             (u_exp, u_status, exp_hist, u_ra, v_no))
+                                            st.cache_data.clear()
+                                            st.rerun()
                                             
                                             
                                     st.divider()
