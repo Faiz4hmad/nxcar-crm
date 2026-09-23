@@ -422,10 +422,10 @@ with tab_active:
                                         u_status = st.selectbox("Status", pipeline, index=pipeline.index(c_stat))
                                         u_exp = st.text_input("Expectation (₹)", value=row['customer_expectation'])
                                         
-                                        if st.button("Save Edits"):
-                                            execute_query("UPDATE leads SET expectation = %s...", (new_expectation,...))
-                                            st.cache_data.clear()  # Wipes the old memory
-                                            st.rerun()             # Reloads the page instantly with fresh data
+                                        # if st.button("Save Edits"):
+                                        #     execute_query("UPDATE leads SET expectation = %s...", (new_expectation,...))
+                                        #     st.cache_data.clear()  # Wipes the old memory
+                                        #     st.rerun()             # Reloads the page instantly with fresh data
                                             
                                             exp_hist = row.get('expectation_history', '') if pd.notna(row.get('expectation_history', '')) else ""
                                             if str(u_exp) != str(row['customer_expectation']):
@@ -434,12 +434,16 @@ with tab_active:
                                             execute_query('''UPDATE leads SET customer_expectation=%s, calling_status=%s, 
                                                              expectation_history=%s, ra_name=%s, local_lock=1 WHERE vehicle_no=%s''', 
                                                           (u_exp, u_status, exp_hist, u_ra, v_no))
+                                            st.cache_data.clear()
                                             st.rerun()
+                                            
                                             
                                     st.divider()
                                     if st.button("🗑️ Delete Lead", key=f"del_{v_no}", use_container_width=True):
                                         execute_query("UPDATE leads SET calling_status='Deleted', local_lock=1 WHERE vehicle_no=%s", (v_no,))
+                                        st.cache_data.clear()
                                         st.rerun()
+                                      
                                             
                             with pop2:
                                 with st.popover("⏰ Remind", use_container_width=True):
