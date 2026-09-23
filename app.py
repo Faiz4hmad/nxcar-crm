@@ -424,6 +424,7 @@ with tab_active:
         
                                         submitted = st.form_submit_button("💾 Save Edits", use_container_width=True)
                                         if submitted:
+                                            now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
                                             exp_hist = row.get('expectation_history', '') if pd.notna(row.get('expectation_history', '')) else ""
                                             if str(u_exp) != str(row['customer_expectation']):
                                                 exp_hist += f"[{now_str}] ₹{row['customer_expectation']} ➡️ ₹{u_exp}\n"
