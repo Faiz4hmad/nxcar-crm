@@ -410,30 +410,30 @@ with tab_active:
                             
                             with pop1:
                                 with st.popover("✏️ Edit", use_container_width=True):
-                                    with st.form(key=f"edit_{v_no}"):
-                                        pipeline = ["New", "Photos Collected", "Pitched to Dealers", "Negotiation", "Physical Visit", "Closed", "Lost"]
+                                    with st.form(key=f"edit_form_{v_no}"):
+                                        pipeline = ["New", "Photos Collected", "Pitched to Dealers", "Negotiation", "Physical Inspection", "Token Done", "RC Transferred", "Payment Done", "Handover"]
                                         c_stat = row['calling_status'] if row['calling_status'] in pipeline else "New"
-                                        
+        
                                         db_ra = row.get('ra_name', 'Unassigned')
                                         if pd.isna(db_ra) or db_ra not in ["Unassigned", "Faiz", "Sudhir"]:
                                             db_ra = "Unassigned"
 
-                                        with st.form(key=f"edit_form_{v_no}"):
-                                            u_ra = st.selectbox("Assign RA:", ["Unassigned", "Faiz", "Sudhir"], index=["Unassigned", "Faiz", "Sudhir"].index(db_ra) if db_ra in ["Unassigned", "Faiz", "Sudhir"] else 0, key=f"ra_{v_no}")
-                                            u_status = st.selectbox("Status", pipeline, index=pipeline.index(c_stat) if c_stat in pipeline else 0, key=f"stat_{v_no}")
-                                            u_exp = st.text_input("Expectation (₹)", value=row['customer_expectation'], key=f"exp_{v_no}")
-    
-                                            submitted = st.form_submit_button("💾 Save Edits", use_container_width=True)
-                                            if submitted:
-                                                exp_hist = row.get('expectation_history', '') if pd.notna(row.get('expectation_history', '')) else ""
-                                                if str(u_exp) != str(row['customer_expectation']):
-                                                    exp_hist += f"[{now_str}] ₹{row['customer_expectation']} ➡️ ₹{u_exp}\n"
+                                        u_ra = st.selectbox("Assign RA:", ["Unassigned", "Faiz", "Sudhir"], index=["Unassigned", "Faiz", "Sudhir"].index(db_ra) if db_ra in ["Unassigned", "Faiz", "Sudhir"] else 0, key=f"ra_{v_no}")
+                                        u_status = st.selectbox("Status", pipeline, index=pipeline.index(c_stat) if c_stat in pipeline else 0, key=f"stat_{v_no}")
+                                        u_exp = st.text_input("Expectation (₹)", value=row['customer_expectation'], key=f"exp_{v_no}")
+        
+                                        submitted = st.form_submit_button("💾 Save Edits", use_container_width=True)
+                                        if submitted:
+                                            exp_hist = row.get('expectation_history', '') if pd.notna(row.get('expectation_history', '')) else ""
+                                             if str(u_exp) != str(row['customer_expectation']):
+                                                exp_hist += f"[{now_str}] ₹{row['customer_expectation']} ➡️ ₹{u_exp}\n"
 
-                                                execute_query('''UPDATE leads SET customer_expectation=%s, calling_status=%s, 
-                                                                 expectation_history=%s, ra_name=%s, local_lock=1 WHERE vehicle_no=%s''', 
-                                                                 (u_exp, u_status, exp_hist, u_ra, v_no))
-                                                st.cache_data.clear()
-                                                st.rerun()
+                                            execute_query('''UPDATE leads SET customer_expectation=%s, calling_status=%s, 
+                                                             expectation_history=%s, ra_name=%s, local_lock=1 WHERE vehicle_no=%s''', 
+                                                                (u_exp, u_status, exp_hist, u_ra, v_no))
+                                            st.cache_data.clear()
+                                            st.rerun()
+                                        
                                             
                                             
                                     st.divider()
