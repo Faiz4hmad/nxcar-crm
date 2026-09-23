@@ -217,23 +217,18 @@ with col_sync:
                 from db import sync_from_sheets
                 
                 # Using direct CSV export links so the app can read the data perfectly
-                if st.session_state.current_user == "Faiz":
-                    target_sheet = "https://docs.google.com/spreadsheets/d/1Z8JOC7mb7SJ0B8zB1c-M3dDAjRyo-aP4_jzyE2JtgOM/export%sformat=csv&gid=0"
-                elif st.session_state.current_user == "Sudhir":
-                    target_sheet = "https://docs.google.com/spreadsheets/d/1ljg4W0RCEJp-b5kkCVNiThiuo3EGunteGPe2J_TdpJg/export%sformat=csv&gid=0"
-                else:
-                    target_sheet = None
                 
-                if target_sheet:
-                    sync_from_sheets(target_sheet, st.session_state.current_user)
-                    st.success(f"Successfully synced {st.session_state.current_user}'s leads!")
-                    st.rerun()
-                else:
-                    st.error("No sheet assigned to this user.")
+                target_sheet = "https://docs.google.com/spreadsheets/d/1Z8JOC7mb7SJ0B8zB1c-M3dDAjRyo-aP4_jzyE2JtgOM/export?format=csv&gid=0"
     st.session_state.last_sync_time = datetime.now().strftime("%I:%M %p")
     st.toast("Database Synced!")
 
 st.divider()
+# Add user view filter toggle
+selected_ra = st.radio("👤 View Leads For:", ["All", "Faiz", "Sudhir"], horizontal=True)
+
+if selected_ra != "All":
+    df = df[df['ra_name'] == selected_ra]
+
 # --- COMPACT PIPELINE METRICS BANNER ---
 if not df.empty:
     n_cnt = len(df[df['calling_status'] == 'New'])
