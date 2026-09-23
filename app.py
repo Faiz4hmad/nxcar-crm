@@ -9,8 +9,6 @@ from streamlit_autorefresh import st_autorefresh
 from db import init_db, sync_from_sheets, get_db_connection
 
 st.set_page_config(page_title="Personal LMS", layout="wide", page_icon="🚙", initial_sidebar_state="collapsed")
-
-st.set_page_config(page_title="Personal LMS", layout="wide", page_icon="🚙", initial_sidebar_state="collapsed")
 os.makedirs("photos", exist_ok=True) 
 
 # --- DATABASE SETUP ---
