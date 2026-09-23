@@ -422,10 +422,6 @@ with tab_active:
                                         u_status = st.selectbox("Status", pipeline, index=pipeline.index(c_stat))
                                         u_exp = st.text_input("Expectation (₹)", value=row['customer_expectation'])
                                         
-                                        # if st.button("Save Edits"):
-                                        #     execute_query("UPDATE leads SET expectation = %s...", (new_expectation,...))
-                                        #     st.cache_data.clear()  # Wipes the old memory
-                                        #     st.rerun()             # Reloads the page instantly with fresh data
                                             
                                         exp_hist = row.get('expectation_history', '') if pd.notna(row.get('expectation_history', '')) else ""
                                         if str(u_exp) != str(row['customer_expectation']):
