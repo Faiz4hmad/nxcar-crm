@@ -51,7 +51,7 @@ def init_db():
         try: c.execute(f"ALTER TABLE leads ADD COLUMN {col} TEXT")
         except: pass
         
-    conn.close()
+    
 
 def sync_from_sheets(sheet_url, current_user):
     if not sheet_url or "google.com/spreadsheets" not in sheet_url:
@@ -112,5 +112,5 @@ def sync_from_sheets(sheet_url, current_user):
                 str(row.get('Customer Expectation', '')), str(row.get('Caling Status', 'New')), str(row.get('Final Remarks', '')), current_time, current_user
             ))
     
-    conn.close()
+    
     return True
