@@ -488,7 +488,7 @@ with tab_active:
                                         if st.form_submit_button("Save Bid", use_container_width=True):
                                             if b_dealer and clean_price(b_price) > 0:
                                                 bid_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                                                execute_query("INSERT INTO lead_dealer_offers (vehicle_no, dealer_name, offer_price, offer_date) VALUES (%s,%s,%s,%s)", 
+                                                execute_query("INSERT INTO dealer_offers (vehicle_no, dealer_name, offer_price, offer_date) VALUES (%s,%s,%s,%s)", 
                                                               (v_no, b_dealer, clean_price(b_price), bid_time))
                                                 execute_query("UPDATE leads SET local_lock=1 WHERE vehicle_no=%s", (v_no,))
                                                 st.rerun()
