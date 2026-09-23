@@ -373,7 +373,8 @@ with tab_active:
                             if not bids_df.empty:
                                 st.markdown("**🤝 Active Dealer Bids:**")
                                 for _, bid in bids_df.iterrows():
-                                    b_time = datetime.strptimeint(bid['offer_price']):, "%Y-%m-%d %H:%M:%S").strftime("%d %b")
+                                    b_time = datetime.strptime(str(bid['offer_date']), "%Y-%m-%d %H:%M:%S").strftime("%d %b")
+                                    # Make sure the line directly below this one has your updated price code: ₹{int(bid['offer_price']):,}
                                     st.markdown(f"<span style='color: #00ADB5; font-weight: bold; font-size: 0.9em;'>- {bid['dealer_name']}: ₹{bid['offer_price']:,}</span> <i style='font-size: 0.8em;'>({b_time})</i>", unsafe_allow_html=True)
                 
                             if pd.notna(row['followup_time']) and row['followup_time']:
