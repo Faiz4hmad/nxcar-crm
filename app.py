@@ -223,18 +223,12 @@ with col_sync:
     st.toast("Database Synced!")
 
 st.divider()
-# Simple and reliable RA filter toggle
+# View Leads For filter toggle
 selected_ra = st.radio("👤 View Leads For:", ["All", "Faiz", "Sudhir"], horizontal=True)
 
 if selected_ra != "All" and not df.empty:
-    # Find any column that contains user or ra information
-    matching_cols = [c for c in df.columns if 'ra' in c.lower() or 'user' in c.lower() or 'assign' in c.lower()]
-    if matching_cols:
-        col = matching_cols[0]
-        df = df[df[col].astype(str).str.contains(selected_ra, case=False, na=False)]
-    else:
-        # Fallback if column not found, show all so screen isn't blank
-        pass
+    if 'ra_assigned' in df.columns:
+        df = df[df['ra_assigned'].astype(str).str.contains(selected_ra, case=False, na=False)]
 
 # --- COMPACT PIPELINE METRICS BANNER ---
 if not df.empty:
