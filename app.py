@@ -223,11 +223,16 @@ with col_sync:
     st.toast("Database Synced!")
 
 st.divider()
-# Add user view filter toggle
+# Add robust user view filter toggle
 selected_ra = st.radio("👤 View Leads For:", ["All", "Faiz", "Sudhir"], horizontal=True)
 
 if selected_ra != "All":
-    df = df[df['ra_name'] == selected_ra]
+    # Check if ra_name column exists in the dataframe
+    col_name = 'ra_name' if 'ra_name' in df.columns else ('RA' if 'RA' in df.columns else None)
+    if col_name:
+        df = df[df[col_name].astype(str).str.strip().str.title() == selected_ra]
+    else:
+        st.warning("⚠️ Assigned RA column not found in data source.")
 
 # --- COMPACT PIPELINE METRICS BANNER ---
 if not df.empty:
