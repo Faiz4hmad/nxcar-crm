@@ -4,6 +4,7 @@ import streamlit as st
 from datetime import datetime
 import urllib.parse as urlparse
 
+@st.cache_resource
 def get_db_connection():
     # Connect directly to Supabase using the Streamlit secret URL string
     return psycopg2.connect(st.secrets["DB_URL"])
