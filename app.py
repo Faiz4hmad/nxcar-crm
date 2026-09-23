@@ -499,7 +499,7 @@ with tab_active:
                                         st.markdown("**🤝 Active Bids:**")
                                         for _, bid in bids_df.iterrows():
                                             b_time = datetime.strptime(bid['offer_date'], "%Y-%m-%d %H:%M:%S").strftime("%d %b")
-                                            st.markdown(f"- **{int(bid['dealer_name'])}**: ₹{bid['offer_price']:,} <i style='font-size:0.8em;'>({b_time})</i>", unsafe_allow_html=True)
+                                            st.markdown(f"- **{bid['dealer_name']}**: ₹{int(bid['offer_price']):,} <i style='font-size:0.8em;'>({b_time})</i>", unsafe_allow_html=True)
                                     
                                     
                                         
