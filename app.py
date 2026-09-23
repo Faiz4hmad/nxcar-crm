@@ -402,7 +402,7 @@ with tab_active:
                                     now_str = datetime.now().strftime("%d-%b %I:%M %p")
                                     rem_hist = row.get('remark_history', '') if pd.notna(row.get('remark_history', '')) else ""
                                     rem_hist += f"[{now_str}] {new_remark}\n"
-                                    execute_query("UPDATE leads SET final_remarks=?, remark_history=?, local_lock=1 WHERE vehicle_no=?", (new_remark, rem_hist, v_no))
+                                    execute_query("UPDATE leads SET final_remarks=%s, remark_history=%s, local_lock=1 WHERE vehicle_no=%s", (new_remark, rem_hist, v_no))
                                     st.rerun()
 
                             # --- COMPACT ACTION BUTTONS ---
