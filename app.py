@@ -15,26 +15,22 @@ os.makedirs("photos", exist_ok=True)
 init_db()
 
 def upgrade_db_silently():
-    conn = get_db_connection()
-    c = conn.cursor()
-    try: c.execute("ALTER TABLE leads ADD COLUMN followup_reason TEXT")
-    except: pass 
-    try: c.execute("ALTER TABLE leads ADD COLUMN remark_history TEXT")
-    except: pass
-    try: c.execute("ALTER TABLE leads ADD COLUMN expectation_history TEXT")
-    except: pass
-    try: c.execute("ALTER TABLE leads ADD COLUMN ra_name TEXT DEFAULT 'Unassigned'")
-    except: pass
     try:
-        c.execute('''CREATE TABLE IF NOT EXISTS dealer_offers (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        vehicle_no TEXT,
-                        dealer_name TEXT,
-                        offer_price INTEGER,
-                        offer_date TIMESTAMP
-                    )''')
-    except: pass
-    conn.commit()
+        conn = get_db_connection()
+        c = conn.cursor()
+        try:
+            c.execute("ALTER TABLE leads ADD COLUMN IF NOT EXISTS followup_reason TEXT;")
+            c.execute("ALTER TABLE leads ADD COLUMN IF NOT EXISTS remark_history TEXT;")
+            c.execute("ALTER TABLE leads ADD COLUMN IF NOT EXISTS expectation_history TEXT;")
+            c.execute("ALTER TABLE leads ADD COLUMN IF NOT EXISTS ra_name TEXT DEFAULT 'Unassigned'")
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        finally:
+            c.close()
+            conn.close()
+    except Exception:
+        pass
 
 upgrade_db_silently()
 
