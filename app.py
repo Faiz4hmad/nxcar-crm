@@ -418,22 +418,22 @@ with tab_active:
                                         if pd.isna(db_ra) or db_ra not in ["Unassigned", "Faiz", "Sudhir"]:
                                             db_ra = "Unassigned"
 
-                                        u_ra = st.selectbox("Assign RA:", ["Unassigned", "Faiz", "Sudhir"], index=["Unassigned", "Faiz", "Sudhir"].index(db_ra))
-                                        u_status = st.selectbox("Status", pipeline, index=pipeline.index(c_stat))
-                                        u_exp = st.text_input("Expectation (₹)", value=row['customer_expectation'])
-                                        
-                                            
-                                        exp_hist = row.get('expectation_history', '') if pd.notna(row.get('expectation_history', '')) else ""
-                                        if st.button("💾 Save Edits", key=f"save_{v_no}"):
-                                            exp_hist = row.get('expectation_history', '') if pd.notna(row.get('expectation_history', '')) else ""
-                                            if str(u_exp) != str(row['customer_expectation']):
-                                                exp_hist += f"[{now_str}] ₹{row['customer_expectation']} ➡️ ₹{u_exp}\n"
+                                        with st.form(key=f"edit_form_{v_no}"):
+                                            u_ra = st.selectbox("Assign RA:", ["Unassigned", "Faiz", "Sudhir"], index=["Unassigned", "Faiz", "Sudhir"].index(db_ra) if db_ra in ["Unassigned", "Faiz", "Sudhir"] else 0, key=f"ra_{v_no}")
+                                            u_status = st.selectbox("Status", pipeline, index=pipeline.index(c_stat) if c_stat in pipeline else 0, key=f"stat_{v_no}")
+                                            u_exp = st.text_input("Expectation (₹)", value=row['customer_expectation'], key=f"exp_{v_no}")
+    
+                                            submitted = st.form_submit_button("💾 Save Edits", use_container_width=True)
+                                            if submitted:
+                                                exp_hist = row.get('expectation_history', '') if pd.notna(row.get('expectation_history', '')) else ""
+                                                if str(u_exp) != str(row['customer_expectation']):
+                                                    exp_hist += f"[{now_str}] ₹{row['customer_expectation']} ➡️ ₹{u_exp}\n"
 
-                                            execute_query('''UPDATE leads SET customer_expectation=%s, calling_status=%s, 
-                                                             expectation_history=%s, ra_name=%s, local_lock=1 WHERE vehicle_no=%s''', 
-                                                             (u_exp, u_status, exp_hist, u_ra, v_no))
-                                            st.cache_data.clear()
-                                            st.rerun()
+                                                execute_query('''UPDATE leads SET customer_expectation=%s, calling_status=%s, 
+                                                                 expectation_history=%s, ra_name=%s, local_lock=1 WHERE vehicle_no=%s''', 
+                                                                 (u_exp, u_status, exp_hist, u_ra, v_no))
+                                                st.cache_data.clear()
+                                                st.rerun()
                                             
                                             
                                     st.divider()
