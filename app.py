@@ -26,7 +26,7 @@ def upgrade_db_silently():
     try: c.execute("ALTER TABLE leads ADD COLUMN ra_name TEXT DEFAULT 'Unassigned'")
     except: pass
     try:
-        c.execute('''CREATE TABLE IF NOT EXISTS lead_dealer_offers (
+        c.execute('''CREATE TABLE IF NOT EXISTS dealer_offers (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         vehicle_no TEXT,
                         dealer_name TEXT,
@@ -95,7 +95,7 @@ def get_dealer_prefs():
 def get_vehicle_bids(vehicle_no):
     conn = get_db_connection()
     try:
-        df = pd.read_sql_query("SELECT * FROM lead_dealer_offers WHERE vehicle_no=%s", conn, params=(vehicle_no,))
+        df = pd.read_sql_query("SELECT * FROM dealer_offers WHERE vehicle_no=%s", conn, params=(vehicle_no,))
     except:
         df = pd.DataFrame()
     conn.close()
