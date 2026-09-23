@@ -75,6 +75,7 @@ def execute_query(query, params=()):
     conn.commit()
     conn.close()
 
+@st.cache_data(ttl=60)
 def load_all_data():
     conn = get_db_connection()
     current_user = st.session_state.get("current_user", "Faiz")
