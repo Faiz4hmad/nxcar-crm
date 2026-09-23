@@ -95,7 +95,7 @@ def get_dealer_prefs():
 def get_vehicle_bids(vehicle_no):
     conn = get_db_connection()
     try:
-        df = pd.read_sql_query("SELECT * FROM lead_dealer_offers WHERE vehicle_no=?", conn, params=(vehicle_no,))
+        df = pd.read_sql_query("SELECT * FROM lead_dealer_offers WHERE vehicle_no=%s", conn, params=(vehicle_no,))
     except:
         df = pd.DataFrame()
     conn.close()
@@ -142,7 +142,7 @@ def get_car_age(year_str):
     try:
         return 2026 - int(str(year_str).strip())
     except:
-        return "?"
+        return "%s"
 
 # --- DATA PROCESSING ---
 # --- DATA PROCESSING ---
@@ -218,9 +218,9 @@ with col_sync:
                 
                 # Using direct CSV export links so the app can read the data perfectly
                 if st.session_state.current_user == "Faiz":
-                    target_sheet = "https://docs.google.com/spreadsheets/d/1Z8JOC7mb7SJ0B8zB1c-M3dDAjRyo-aP4_jzyE2JtgOM/export?format=csv&gid=0"
+                    target_sheet = "https://docs.google.com/spreadsheets/d/1Z8JOC7mb7SJ0B8zB1c-M3dDAjRyo-aP4_jzyE2JtgOM/export%sformat=csv&gid=0"
                 elif st.session_state.current_user == "Sudhir":
-                    target_sheet = "https://docs.google.com/spreadsheets/d/1ljg4W0RCEJp-b5kkCVNiThiuo3EGunteGPe2J_TdpJg/export?format=csv&gid=0"
+                    target_sheet = "https://docs.google.com/spreadsheets/d/1ljg4W0RCEJp-b5kkCVNiThiuo3EGunteGPe2J_TdpJg/export%sformat=csv&gid=0"
                 else:
                     target_sheet = None
                 
@@ -331,7 +331,7 @@ with tab_active:
                             if len(raw_phone) == 10:
                                 raw_phone = "91" + raw_phone
                             seller_msg = urllib.parse.quote(f"Hi {row['seller_name']}, this is Faiz from Nxcar regarding your {row['make_model']}.")
-                            wa_link = f"https://wa.me/{raw_phone}?text={seller_msg}"
+                            wa_link = f"https://wa.me/{raw_phone}%stext={seller_msg}"
                             
                             st.markdown(f"**🆔 {v_no}** (RTO: {rto_code}) | 👤 **{row['seller_name']}** (📞 {row['phone_number']} | [💬 WhatsApp Seller]({wa_link}))")
                             st.markdown(f"📍 **{row['city']}** | ⏳ Expires: {row['days_left']} Days | Lead ID: `#{row['lead_id']}`")
@@ -429,14 +429,14 @@ with tab_active:
                                             if str(u_exp) != str(row['customer_expectation']):
                                                 exp_hist += f"[{now_str}] ₹{row['customer_expectation']} ➡️ ₹{u_exp}\n"
                                             
-                                            execute_query('''UPDATE leads SET customer_expectation=?, calling_status=?, 
-                                                             expectation_history=?, ra_name=?, local_lock=1 WHERE vehicle_no=?''', 
+                                            execute_query('''UPDATE leads SET customer_expectation=%s, calling_status=%s, 
+                                                             expectation_history=%s, ra_name=%s, local_lock=1 WHERE vehicle_no=%s''', 
                                                           (u_exp, u_status, exp_hist, u_ra, v_no))
                                             st.rerun()
                                             
                                     st.divider()
                                     if st.button("🗑️ Delete Lead", key=f"del_{v_no}", use_container_width=True):
-                                        execute_query("UPDATE leads SET calling_status='Deleted', local_lock=1 WHERE vehicle_no=?", (v_no,))
+                                        execute_query("UPDATE leads SET calling_status='Deleted', local_lock=1 WHERE vehicle_no=%s", (v_no,))
                                         st.rerun()
                                             
                             with pop2:
@@ -445,20 +445,20 @@ with tab_active:
                                     rf1, rf2, rf3 = st.columns(3)
                                     if rf1.button("+2H", key=f"2h_{v_no}", use_container_width=True):
                                         new_time = (datetime.now() + timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S")
-                                        execute_query("UPDATE leads SET followup_time=?, followup_reason=?, local_lock=1 WHERE vehicle_no=?", (new_time, st.session_state[f"rsn_{v_no}"], v_no))
+                                        execute_query("UPDATE leads SET followup_time=%s, followup_reason=%s, local_lock=1 WHERE vehicle_no=%s", (new_time, st.session_state[f"rsn_{v_no}"], v_no))
                                         st.rerun()
                                     if rf2.button("+4H", key=f"4h_{v_no}", use_container_width=True):
                                         new_time = (datetime.now() + timedelta(hours=4)).strftime("%Y-%m-%d %H:%M:%S")
-                                        execute_query("UPDATE leads SET followup_time=?, followup_reason=?, local_lock=1 WHERE vehicle_no=?", (new_time, st.session_state[f"rsn_{v_no}"], v_no))
+                                        execute_query("UPDATE leads SET followup_time=%s, followup_reason=%s, local_lock=1 WHERE vehicle_no=%s", (new_time, st.session_state[f"rsn_{v_no}"], v_no))
                                         st.rerun()
                                     if rf3.button("+24H", key=f"24h_{v_no}", use_container_width=True):
                                         new_time = (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
-                                        execute_query("UPDATE leads SET followup_time=?, followup_reason=?, local_lock=1 WHERE vehicle_no=?", (new_time, st.session_state[f"rsn_{v_no}"], v_no))
+                                        execute_query("UPDATE leads SET followup_time=%s, followup_reason=%s, local_lock=1 WHERE vehicle_no=%s", (new_time, st.session_state[f"rsn_{v_no}"], v_no))
                                         st.rerun()
                                     
                                     st.divider()
                                     if st.button("✅ Mark Done / Cancel", key=f"cancel_{v_no}", use_container_width=True):
-                                        execute_query("UPDATE leads SET followup_time=NULL, followup_reason=NULL, local_lock=1 WHERE vehicle_no=?", (v_no,))
+                                        execute_query("UPDATE leads SET followup_time=NULL, followup_reason=NULL, local_lock=1 WHERE vehicle_no=%s", (v_no,))
                                         st.rerun()
                                         
                             with pop3:
@@ -475,7 +475,7 @@ with tab_active:
                                         st.warning("No matches found.")
                                     
                                     pitch_msg = f"🚗 *Car Available for Bid*\n\n*Make & Model:* {row['make_model']}\n*Year:* {row['year']} ({car_age} yrs)\n*KM Driven:* {row['km_driven']} km\n*Fuel:* {row['fuel_type']}\n*Location:* {row['city']}\n\nLet me know your best offer!"
-                                    wa_pitch_url = f"https://wa.me/?text={urllib.parse.quote(pitch_msg)}"
+                                    wa_pitch_url = f"https://wa.me/%stext={urllib.parse.quote(pitch_msg)}"
                                     st.link_button("🟢 Pitch via WhatsApp", wa_pitch_url, use_container_width=True)
                                     
                                     st.divider()
@@ -488,9 +488,9 @@ with tab_active:
                                         if st.form_submit_button("Save Bid", use_container_width=True):
                                             if b_dealer and clean_price(b_price) > 0:
                                                 bid_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                                                execute_query("INSERT INTO lead_dealer_offers (vehicle_no, dealer_name, offer_price, offer_date) VALUES (?, ?, ?, ?)", 
+                                                execute_query("INSERT INTO lead_dealer_offers (vehicle_no, dealer_name, offer_price, offer_date) VALUES (%s, %s, %s, %s)", 
                                                               (v_no, b_dealer, clean_price(b_price), bid_time))
-                                                execute_query("UPDATE leads SET local_lock=1 WHERE vehicle_no=?", (v_no,))
+                                                execute_query("UPDATE leads SET local_lock=1 WHERE vehicle_no=%s", (v_no,))
                                                 st.rerun()
                                     
                                     # 3. SHOW ACTIVE BIDS
@@ -510,7 +510,7 @@ with tab_active:
                                         file_path = os.path.join("photos", f"{v_no}.jpg")
                                         with open(file_path, "wb") as f:
                                             f.write(img.getbuffer())
-                                        execute_query("UPDATE leads SET photo_path=?, local_lock=1 WHERE vehicle_no=?", (file_path, v_no))
+                                        execute_query("UPDATE leads SET photo_path=%s, local_lock=1 WHERE vehicle_no=%s", (file_path, v_no))
                                         st.rerun()
 
 with tab_expired:
@@ -521,12 +521,12 @@ with tab_expired:
         if not expired_df.empty and 'vehicle_no' in expired_df.columns:
                 st.dataframe(expired_df[['vehicle_no', 'make_model', 'customer_expectation', 'seller_name', 'phone_number']], use_container_width=True)
     with col_exp2:
-        st.info("Want to continue working a lead? Enter the Vehicle Number below to reset its 5-day timer and push it back to the Active Pipeline.")
+        st.info("Want to continue working a lead%s Enter the Vehicle Number below to reset its 5-day timer and push it back to the Active Pipeline.")
         with st.form("revive_form"):
             revive_vno = st.text_input("Enter Vehicle No (🆔)")
             if st.form_submit_button("🔄 Revive Lead", use_container_width=True):
                 if revive_vno:
-                    execute_query("UPDATE leads SET system_date_added=CURRENT_TIMESTAMP, local_lock=1 WHERE vehicle_no=?", (revive_vno.strip(),))
+                    execute_query("UPDATE leads SET system_date_added=CURRENT_TIMESTAMP, local_lock=1 WHERE vehicle_no=%s", (revive_vno.strip(),))
                     st.success("Lead Revived!")
                     st.rerun()
 
@@ -546,7 +546,7 @@ with tab_crm:
                 if d_name and clean_price(d_budget) > 0:
                     execute_query('''
                         INSERT INTO dealer_preferences (dealer_name, budget_max, preferred_make, preferred_fuel, preferred_city)
-                        VALUES (?, ?, ?, ?, ?)
+                        VALUES (%s, %s, %s, %s, %s)
                     ''', (d_name, clean_price(d_budget), d_make, d_fuel, d_rto))
                     st.success(f"{d_name} added to Network!")
                     st.rerun()
