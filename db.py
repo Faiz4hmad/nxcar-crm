@@ -10,21 +10,30 @@ def get_db_connection():
     return psycopg2.connect(st.secrets["DB_URL"])
 
 def init_db():
-    conn = get_db_connection()
-    conn.autocommit = True
-    c = conn.cursor()
-    
-    # Create tables with PostgreSQL syntax (SERIAL instead of AUTOINCREMENT)
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS leads (
-            vehicle_no TEXT PRIMARY KEY, date TEXT, source TEXT, ra_assigned TEXT, 
-            vehicle_id TEXT, seller_name TEXT, phone_number TEXT, make_model TEXT,
-            year TEXT, km_driven TEXT, city TEXT, fuel_type TEXT, ownership TEXT, 
-            competitor_inspected TEXT, inspected_date TEXT, customer_expectation TEXT, 
-            calling_status TEXT, final_remarks TEXT, photo_path TEXT, 
-            followup_time TEXT, local_lock INTEGER DEFAULT 0,
-            system_date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
+    try:
+        conn = get_db_connection()
+        if conn:
+            try:
+                conn.autocommit = True
+            except Exception:
+                pass
+            c = conn.cursor()
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS leads (
+                    vehicle_no TEXT PRIMARY KEY,
+                    date TEXT, source TEXT, ra_assigned TEXT,
+                    vehicle_id TEXT, seller_name TEXT, phone_number TEXT, make_model TEXT,
+                    year TEXT, km_driven TEXT, city TEXT, fuel_type TEXT, ownership TEXT,
+                    competitor_inspected TEXT, inspected_date TEXT, customer_expectation TEXT,
+                    calling_status TEXT, final_remarks TEXT, photo_path TEXT,
+                    followup_time TEXT, local_lock INTEGER DEFAULT 0,
+                    system_date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
+            c.close()
+            conn.close()
+    except Exception as e:
+        print(f"Database init error: {e}")
     ''')
     c.execute('''
         CREATE TABLE IF NOT EXISTS dealer_offers (
