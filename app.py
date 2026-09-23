@@ -77,13 +77,10 @@ def execute_query(query, params=()):
 @st.cache_data(ttl=60)
 def load_all_data():
     conn = get_db_connection()
-    current_user = st.session_state.get("current_user", "Faiz")
-
-    # Use the exact column name we found in Supabase
-    query = "SELECT * FROM leads WHERE ra_assigned = %s ORDER BY system_date_added DESC"
-
-    df = pd.read_sql_query(query, conn, params=(current_user,))
-    
+    # Fetch all leads without restricting to a single user in SQL
+    query = "SELECT * FROM leads ORDER BY system_date_added DESC"
+    df = pd.read_sql_query(query, conn)
+    conn.close()
     return df
 
 def get_dealer_prefs():
@@ -227,8 +224,10 @@ st.divider()
 selected_ra = st.radio("👤 View Leads For:", ["All", "Faiz", "Sudhir"], horizontal=True)
 
 if selected_ra != "All" and not df.empty:
-    if 'ra_assigned' in df.columns:
-        df = df[df['ra_assigned'].astype(str).str.contains(selected_ra, case=False, na=False)]
+    # Check for the Google Sheet column name 'RA Assigned'
+    col_name = 'RA Assigned' if 'RA Assigned' in df.columns else 'ra_assigned'
+    if col_name in df.columns:
+        df = df[df[col_name].astype(str).str.contains(selected_ra, case=False, na=False)]
 
 # --- COMPACT PIPELINE METRICS BANNER ---
 if not df.empty:
