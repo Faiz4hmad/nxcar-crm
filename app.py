@@ -35,7 +35,6 @@ def upgrade_db_silently():
                     )''')
     except: pass
     conn.commit()
-    conn.close()
 
 upgrade_db_silently()
 
@@ -73,7 +72,7 @@ def execute_query(query, params=()):
     c = conn.cursor()
     c.execute(query, params)
     conn.commit()
-    conn.close()
+    #conn.close()
 
 @st.cache_data(ttl=60)
 def load_all_data():
@@ -84,13 +83,13 @@ def load_all_data():
     query = "SELECT * FROM leads WHERE ra_assigned = %s ORDER BY system_date_added DESC"
 
     df = pd.read_sql_query(query, conn, params=(current_user,))
-    conn.close()
+    #conn.close()
     return df
 
 def get_dealer_prefs():
     conn = get_db_connection()
     df = pd.read_sql_query("SELECT * FROM dealer_preferences", conn)
-    conn.close()
+    #conn.close()
     return df
 
 def get_vehicle_bids(vehicle_no):
@@ -99,12 +98,12 @@ def get_vehicle_bids(vehicle_no):
         df = pd.read_sql_query("SELECT * FROM dealer_offers WHERE vehicle_no=%s", conn, params=(vehicle_no,))
     except:
         df = pd.DataFrame()
-    conn.close()
+    #conn.close()
     return df
 def get_dealer_bids():
     conn = get_db_connection()
     df = pd.read_sql_query("SELECT * FROM dealer_offers", conn)
-    conn.close()
+    #conn.close()
     return df
 
 def clean_price(price_str):
