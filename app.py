@@ -10,6 +10,25 @@ from db import init_db, sync_from_sheets, get_db_connection
 
 st.set_page_config(page_title="Personal LMS", layout="wide", page_icon="🚙", initial_sidebar_state="collapsed")
 os.makedirs("photos", exist_ok=True)
+# --- CUSTOM CSS TO REDUCE WHITESPACE & CARD SIZE ---
+st.markdown("""
+    <style>
+        /* Reduce top whitespace */
+        .block-container {
+            padding-top: 1.5rem !important;
+            padding-bottom: 1rem !important;
+        }
+        /* Compress spacing between text inside cards */
+        div[data-testid="stMarkdownContainer"] p {
+            margin-bottom: 0.2rem !important;
+            font-size: 0.95em !important; 
+        }
+        /* Reduce gap between columns */
+        div[data-testid="stVerticalBlock"] {
+            gap: 0.3rem !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 # --- DATABASE SETUP ---
 init_db()
@@ -292,14 +311,7 @@ with tab_active:
                             badge_color = "#10B981" if curr_ra != "Unassigned" else "#FF5252"
 
                             st.markdown(f"### 🏎️ {row['make_model']} &nbsp;<span style='background:{badge_color};color:white;padding:3px 10px;border-radius:12px;font-size:0.55em;vertical-align:middle;'>RA: {curr_ra}</span>", unsafe_allow_html=True)
-
-                            raw_phone = re.sub(r'\D', '', str(row['phone_number']))
-                            if len(raw_phone) == 10:
-                                raw_phone = "91" + raw_phone
-                            seller_msg = urllib.parse.quote(f"Hi {row['seller_name']}, this is Faiz from Nxcar regarding your {row['make_model']}.")
-                            wa_link = f"https://wa.me/{raw_phone}?text={seller_msg}"
-
-                            st.markdown(f"**🆔 {v_no}** (RTO: {rto_code}) | 👤 **{row['seller_name']}** (📞 {row['phone_number']} | [💬 WhatsApp Seller]({wa_link}))")
+                            st.markdown(f"**🆔 {v_no}** (RTO: {rto_code}) | 👤 **{row['seller_name']}** (📞 {row['phone_number']})")
                             st.markdown(f"📍 **{row['city']}** | ⏳ Expires: {row['days_left']} Days | Lead ID: `#{row['lead_id']}`")
 
                             bids_df = get_vehicle_bids(v_no)
@@ -366,7 +378,7 @@ with tab_active:
                                     execute_query("UPDATE leads SET final_remarks=%s, remark_history=%s, local_lock=1 WHERE vehicle_no=%s", (new_remark, rem_hist, v_no))
                                     st.rerun()
 
-                            pop1, pop2, pop3, pop4 = st.columns([1, 1, 1.3, 1])
+                            pop1, pop2, pop3 = st.columns([1, 1, 1.5])
 
                             with pop1:
                                 with st.popover("✏️ Edit", use_container_width=True):
@@ -434,12 +446,6 @@ with tab_active:
                                     else:
                                         st.warning("No matches found.")
 
-                                    pitch_msg = f"🚗 *Car Available for Bid*\n\n*Make & Model:* {row['make_model']}\n*Year:* {row['year']} ({car_age} yrs)\n*KM Driven:* {row['km_driven']} km\n*Fuel:* {row['fuel_type']}\n*Location:* {row['city']}\n\nLet me know your best offer!"
-                                    wa_pitch_url = f"https://wa.me/?text={urllib.parse.quote(pitch_msg)}"
-                                    st.link_button("🟢 Pitch via WhatsApp", wa_pitch_url, use_container_width=True)
-
-                                    st.divider()
-
                                     st.markdown("**⚡ Add Dealer Bid**")
                                     with st.form(key=f"bid_{v_no}"):
                                         b_dealer = st.text_input("Dealer Name", placeholder="Name")
@@ -458,16 +464,6 @@ with tab_active:
                                         for _, bid in bids_df.iterrows():
                                             b_time = datetime.strptime(bid['offer_date'], "%Y-%m-%d %H:%M:%S").strftime("%d %b")
                                             st.markdown(f"- **{bid['dealer_name']}**: ₹{int(bid['offer_price']):,} <i style='font-size:0.8em;'>({b_time})</i>", unsafe_allow_html=True)
-
-                            with pop4:
-                                with st.popover("📸 Photo", use_container_width=True):
-                                    img = st.file_uploader("Upload Image", key=f"img_{v_no}", label_visibility="collapsed")
-                                    if img:
-                                        file_path = os.path.join("photos", f"{v_no}.jpg")
-                                        with open(file_path, "wb") as f:
-                                            f.write(img.getbuffer())
-                                        execute_query("UPDATE leads SET photo_path=%s, local_lock=1 WHERE vehicle_no=%s", (file_path, v_no))
-                                        st.rerun()
 
 with tab_expired:
     st.write("### 📂 Leads Not Converted within 5 Days")
