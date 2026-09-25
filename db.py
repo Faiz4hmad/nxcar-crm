@@ -18,6 +18,7 @@ def init_db():
             except Exception:
                 pass
             c = conn.cursor()
+            # 1. Create mainly leads table
             c.execute('''
                 CREATE TABLE IF NOT EXISTS leads (
                     vehicle_no TEXT PRIMARY KEY,
@@ -30,96 +31,95 @@ def init_db():
                     system_date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             ''')
-            c.close()
-            conn.close()
-    except Exception as e:
-        print(f"Database init error: {e}")
-    ''')
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS dealer_offers (
-            id SERIAL PRIMARY KEY,
-            vehicle_no TEXT, dealer_name TEXT, offer_price TEXT, offer_date TEXT
-        )
-    ''')
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS historical_deals (
-            id SERIAL PRIMARY KEY,
-            make_model TEXT, year TEXT, closed_price INTEGER
-        )
-    ''')
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS dealer_preferences (
-            id SERIAL PRIMARY KEY,
-            dealer_name TEXT, budget_max INTEGER, 
-            preferred_make TEXT, preferred_fuel TEXT, preferred_city TEXT
-        )
-    ''')
-    
-    # Ensure UI-specific columns exist
+    #         c.close()
+    #         conn.close()
+    # except Exception as e:
+    #     print(f"Database init error: {e}")
+    # 2. Create secondary tables while connection is open
+    c.execute('''CREATE TABLE IF NOT EXISTS dealer_offers (
+        id SERIAL PRIMARY KEY,
+        vehicle_no TEXT, dealer_name TEXT, offer_price TEXT, offer_date TEXT
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS historical_deals (
+        id SERIAL PRIMARY KEY, make_model TEXT, year TEXT, closed_price INTEGER
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS dealer_preferences (
+        id SERIAL PRIMARY KEY,dealer_name TEXT, budget_max INTEGER, preferred_make TEXT, preferred_fuel TEXT, preferred_city TEXT
+    )''')
+    # 3. Ensure UI-specific columns exist
     for col in ['followup_reason', 'remark_history', 'expectation_history', 'ra_name', 'assigned_to']:
-        try: c.execute(f"ALTER TABLE leads ADD COLUMN {col} TEXT")
-        except: pass
-        
-    
+        try: 
+            c.execute(f"ALTER TABLE leads ADD COLUMN {col} TEXT")
+        except Exception:
+            pass
+    # 4. Clean up connection at the very end
+    c.close()
+    conn.close()
+except Exception as e:
+        print(f"Database init error: {e}")
 
 def sync_from_sheets(sheet_url, current_user):
     if not sheet_url or "google.com/spreadsheets" not in sheet_url:
-        return False
-        
+        return False   
     try:
         if "/edit" in sheet_url:
             # Handles both standard links and Sudhir's specific formatting
-            sheet_url = sheet_url.replace("/edit?usp=sharing", "/export?format=csv&gid=0")
-            sheet_url = sheet_url.replace("/edit#gid=", "/export?format=csv&gid=")
-            sheet_url = sheet_url.replace("/edit?pli=1&gid=0#gid=0", "/export?format=csv&gid=0")
+            sheet_url = sheet_url.replace("/edit?gid=0#gid=0", "/export?format=csv&gid=0")
         df = pd.read_csv(sheet_url).fillna('')
     except:
         return False
         
     init_db()
     conn = get_db_connection()
-    conn.autocommit = True
-    c = conn.cursor()
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if not conn:
+        return False
+    try:
+        conn.autocommit = True
+        c = conn.cursor()
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    for index, row in df.iterrows():
-        v_no = str(row.get('Vehicle No', '')).strip()
-        if not v_no: continue
+        for index, row in df.iterrows():
+            v_no = str(row.get('Vehicle No', '')).strip()
+            if not v_no or v_no == 'nan':
+                continue
             
-        c.execute("SELECT local_lock FROM leads WHERE vehicle_no=%s", (v_no,))
-        existing = c.fetchone()
+            c.execute("SELECT local_lock FROM leads WHERE vehicle_no=%s", (v_no,))
+            existing = c.fetchone()
         
-        if existing:
-            if existing[0] == 0:
+            if existing:
+                if existing[0] == 0:
+                    c.execute('''
+                        UPDATE leads SET 
+                        date=%s, source=%s, ra_assigned=%s, vehicle_id=%s, seller_name=%s, 
+                        phone_number=%s, make_model=%s, year=%s, km_driven=%s, city=%s, 
+                        fuel_type=%s, ownership=%s, competitor_inspected=%s, inspected_date=%s
+                        WHERE vehicle_no=%s
+                    ''', (
+                        str(row.get('Date', '')), str(row.get('Source', '')), str(row.get('RA Assigned', '')), 
+                        str(row.get('Vehicle ID', '')), str(row.get('Seller Name', '')), str(row.get('Phone Number', '')), 
+                        str(row.get('Manufacturer and Model', '')), str(row.get('Year', '')), str(row.get('KM\'s Driven', '')), 
+                        str(row.get('City', '')), str(row.get('Fuel Type', '')), str(row.get('Ownership', '')), 
+                        str(row.get('Cars24 / Spinny Inspected', '')), str(row.get('Inspected Date', '')), v_no
+                    ))
+            else:
+                # This tags the new lead with current_user (Faiz or Sudhir)
                 c.execute('''
-                    UPDATE leads SET 
-                    date=%s, source=%s, ra_assigned=%s, vehicle_id=%s, seller_name=%s, 
-                    phone_number=%s, make_model=%s, year=%s, km_driven=%s, city=%s, 
-                    fuel_type=%s, ownership=%s, competitor_inspected=%s, inspected_date=%s
-                    WHERE vehicle_no=%s
+                    INSERT INTO leads (
+                        vehicle_no, date, source, ra_assigned, vehicle_id, seller_name, phone_number, 
+                        make_model, year, km_driven, city, fuel_type, ownership, 
+                        competitor_inspected, inspected_date, customer_expectation, calling_status, final_remarks, local_lock, system_date_added, ra_name
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s)
                 ''', (
-                    str(row.get('Date', '')), str(row.get('Source', '')), str(row.get('RA Assigned', '')), 
+                    v_no, str(row.get('Date', '')), str(row.get('Source', '')), str(row.get('RA Assigned', '')), 
                     str(row.get('Vehicle ID', '')), str(row.get('Seller Name', '')), str(row.get('Phone Number', '')), 
                     str(row.get('Manufacturer and Model', '')), str(row.get('Year', '')), str(row.get('KM\'s Driven', '')), 
                     str(row.get('City', '')), str(row.get('Fuel Type', '')), str(row.get('Ownership', '')), 
-                    str(row.get('Cars24 / Spinny Inspected', '')), str(row.get('Inspected Date', '')), v_no
+                    str(row.get('Cars24 / Spinny Inspected', '')), str(row.get('Inspected Date', '')),
+                    str(row.get('Customer Expectation', '')), str(row.get('Caling Status', 'New')), str(row.get('Final Remarks', '')), current_time, current_user
                 ))
-        else:
-            # This tags the new lead with current_user (Faiz or Sudhir)
-            c.execute('''
-                INSERT INTO leads (
-                    vehicle_no, date, source, ra_assigned, vehicle_id, seller_name, phone_number, 
-                    make_model, year, km_driven, city, fuel_type, ownership, 
-                    competitor_inspected, inspected_date, customer_expectation, calling_status, final_remarks, local_lock, system_date_added, ra_name
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s)
-            ''', (
-                v_no, str(row.get('Date', '')), str(row.get('Source', '')), str(row.get('RA Assigned', '')), 
-                str(row.get('Vehicle ID', '')), str(row.get('Seller Name', '')), str(row.get('Phone Number', '')), 
-                str(row.get('Manufacturer and Model', '')), str(row.get('Year', '')), str(row.get('KM\'s Driven', '')), 
-                str(row.get('City', '')), str(row.get('Fuel Type', '')), str(row.get('Ownership', '')), 
-                str(row.get('Cars24 / Spinny Inspected', '')), str(row.get('Inspected Date', '')),
-                str(row.get('Customer Expectation', '')), str(row.get('Caling Status', 'New')), str(row.get('Final Remarks', '')), current_time, current_user
-            ))
-    
-    
-    return True
+        c.close()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Sync execution error: {e}")
+        return False
