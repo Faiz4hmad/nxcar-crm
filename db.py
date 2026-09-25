@@ -119,7 +119,7 @@ def sync_from_sheets(sheet_url, current_user):
                     str(row.get('Manufacturer and Model', '')), str(row.get('Year', '')), str(row.get('KM\'s Driven', '')), 
                     str(row.get('City', '')), str(row.get('Fuel Type', '')), str(row.get('Ownership', '')), 
                     str(row.get('Cars24 / Spinny Inspected', '')), str(row.get('Inspected Date', '')),
-                    str(row.get('Customer Expectation', '')), str(row.get('Calling Status', 'New')), str(row.get('Final Remarks', '')), current_time, current_user
+                    str(row.get('Customer Expectation', '')), str(row.get('Calling Status', 'New')), str(row.get('Final Remarks', '')), current_time, str(row.get('RA Assigned', 'Unassigned'))
                 ))
         c.close()
         conn.close()
