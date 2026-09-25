@@ -230,21 +230,19 @@ if selected_ra != "All" and not df.empty:
     ]
 
 # --- COMPACT PIPELINE METRICS BANNER ---
+# --- DASHBOARD METRICS ---
 if not df.empty:
     n_cnt = len(df[df['calling_status'] == 'New'])
     p_cnt = len(df[df['calling_status'] == 'Photos Collected'])
     neg_cnt = len(df[df['calling_status'] == 'Negotiation'])
     c_cnt = len(df[df['calling_status'] == 'Closed'])
 
-    st.markdown(
-        f"<div style='padding: 10px 15px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 15px; text-align: center; font-size: 1.05em;'>"
-        f"🆕 New Leads: <b>{n_cnt}</b> &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; "
-        f"📸 Photos: <b>{p_cnt}</b> &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; "
-        f"🗣️ Negotiating: <b>{neg_cnt}</b> &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; "
-        f"🏆 Closed: <b>{c_cnt}</b>"
-        f"</div>", 
-        unsafe_allow_html=True
-    )
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("🆕 New Leads", n_cnt)
+    m2.metric("📸 Photos", p_cnt)
+    m3.metric("🗣️ Negotiating", neg_cnt)
+    m4.metric("🏆 Closed", c_cnt)
+    st.divider()
 
 # --- MAIN TABS ---
 tab_active, tab_expired, tab_crm = st.tabs(["🔥 Active Pipeline", f"📂 Not Converted ({len(expired_df)})", "👥 Dealer CRM & Analytics"])
