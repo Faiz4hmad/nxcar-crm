@@ -248,14 +248,13 @@ if not df.empty:
 tab_active, tab_expired, tab_crm = st.tabs(["🔥 Active Pipeline", f"📂 Not Converted ({len(expired_df)})", "👥 Dealer CRM & Analytics"])
 
 with tab_active:
-    st.write("### 🗂️ View Pipeline By Day")
-
-    day_filter = st.radio(
-        "Filter by Days:",
-        ["All Active", "5 Days Left", "4 Days Left", "3 Days Left", "2 Days Left", "1 Day Left", "Closed Deals"],
-        horizontal=True,
-        label_visibility="collapsed"
-    )
+    with st.expander("🎛️ Pipeline Filters & Search", expanded=True):
+        day_filter = st.radio(
+            "⏳ Pipeline Stage:",
+            ["All Active", "5 Days Left", "4 Days Left", "3 Days Left", "2 Days Left", "1 Day Left", "Closed Deals"],
+            horizontal=True
+        )
+        search_term = st.text_input("Search", "", label_visibility="collapsed", placeholder="🔍 Search by Car Number, Name, or Phone...")
 
     if day_filter == "All Active":
         display_df = active_df
@@ -264,8 +263,6 @@ with tab_active:
     else:
         d_target = int(day_filter.split()[0])
         display_df = active_df[(active_df['days_left'] == d_target) & (active_df['calling_status'] != 'Closed')]
-
-    search_term = st.text_input("🔍 Search Leads (Car Number, Name, or Phone):", "")
     if search_term:
         display_df = display_df[
             display_df['vehicle_no'].astype(str).str.contains(search_term, case=False, na=False) |
@@ -299,21 +296,26 @@ with tab_active:
 
                     with cols[j]:
                         with st.container(border=True):
-                            if has_match and show_matcher:
-                                st.markdown(f"""
-                                    <div style="background-color: #FFF9C4; padding: 4px 8px; border-radius: 4px; border: 1px solid #FBC02D; margin-bottom: 8px;">
-                                        <strong style="color: #D84315; font-size: 0.85em;">🌟 {len(matches)} DEALER MATCHES (RTO: {rto_code})</strong>
-                                    </div>
-                                """, unsafe_allow_html=True)
-
+                            # 1. Header: Car Name & Badge
                             curr_ra = row.get('ra_name', 'Unassigned')
                             if pd.isna(curr_ra) or curr_ra == "": curr_ra = "Unassigned"
                             badge_color = "#10B981" if curr_ra != "Unassigned" else "#FF5252"
+                            st.markdown(f"#### 🏎️ {row['make_model']} &nbsp;<span style='background:{badge_color};color:white;padding:2px 8px;border-radius:10px;font-size:0.6em;vertical-align:middle;'>{curr_ra}</span>", unsafe_allow_html=True)
 
-                            st.markdown(f"### 🏎️ {row['make_model']} &nbsp;<span style='background:{badge_color};color:white;padding:3px 10px;border-radius:12px;font-size:0.55em;vertical-align:middle;'>RA: {curr_ra}</span>", unsafe_allow_html=True)
-                            st.markdown(f"**🆔 {v_no}** (RTO: {rto_code}) | 👤 **{row['seller_name']}** (📞 {row['phone_number']})")
-                            st.markdown(f"📍 **{row['city']}** | ⏳ Expires: {row['days_left']} Days | Lead ID: `#{row['lead_id']}`")
+                            # 2. Seller Info
+                            st.markdown(f"**👤 {row['seller_name']}** &nbsp;📞 `{row['phone_number']}`<br/>"
+                                        f"<span style='color:gray;font-size:0.85em;'>📍 {row['city']} (RTO: {rto_code}) &nbsp;|&nbsp; ID: {v_no} &nbsp;|&nbsp; Expires: {row['days_left']} Days</span>", 
+                                        unsafe_allow_html=True)
 
+                            # 3. Specs Block (Shaded Box)
+                            st.markdown(f"""
+                                <div style='background-color: rgba(128,128,128,0.05); padding: 8px 12px; border-radius: 6px; margin: 10px 0; font-size: 0.9em; border-left: 3px solid #00ADB5;'>
+                                    📅 <b>{row['year']}</b> ({car_age} yrs) &nbsp;&nbsp;|&nbsp;&nbsp; 🛣️ <b>{row['km_driven']} km</b> <br/>
+                                    ⛽ <b>{row['fuel_type']}</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp; 🔑 <b>{row['ownership']}</b> 
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                            # 4. Pricing & Stage
                             bids_df = get_vehicle_bids(v_no)
                             max_bid = int(bids_df['offer_price'].max()) if not bids_df.empty else 0
                             price_diff = seller_ask - max_bid if max_bid > 0 else 0
@@ -328,32 +330,20 @@ with tab_active:
                                     ask_display = f"<span style='color:#FF5252; font-size:0.9em; margin-right: 6px;'>{strike_html}</span><b>₹{seller_ask:,}</b>"
 
                             if max_bid > 0:
-                                bid_display = f"💵 High Bid: <b>₹{max_bid:,}</b> <span style='color:#10B981; font-size:0.9em; font-weight:bold; margin-left: 6px;'>(Gap: ₹{price_diff:,})</span>"
+                                bid_display = f"💵 Bid: <b>₹{max_bid:,}</b> <span style='color:#10B981; font-size:0.9em;'>(Gap: ₹{price_diff:,})</span>"
                             else:
                                 bid_display = f"📌 Stage: <span style='color:#00B4D8; font-weight:bold;'>{row['calling_status']}</span>"
 
-                            st.markdown(
-                                f"<div style='margin-bottom: 12px; line-height: 1.8;'>"
-                                f"📅 <b>{row['year']}</b> ({car_age} yrs) &nbsp;&nbsp;|&nbsp;&nbsp; "
-                                f"⛽ <b>{row['fuel_type']}</b> &nbsp;&nbsp;|&nbsp;&nbsp; "
-                                f"🛣️ <b>{row['km_driven']} km</b> &nbsp;&nbsp;|&nbsp;&nbsp; "
-                                f"🔑 <b>{row['ownership']}</b><br/>"
-                                f"💰 Ask: {ask_display} &nbsp;&nbsp;|&nbsp;&nbsp; {bid_display}"
-                                f"</div>", 
-                                unsafe_allow_html=True
-                            )
+                            st.markdown(f"<div style='font-size: 1.05em; margin-bottom: 8px;'>💰 Ask: {ask_display} &nbsp;&nbsp;|&nbsp;&nbsp; {bid_display}</div>", unsafe_allow_html=True)
 
-                            if not bids_df.empty:
-                                st.markdown("**🤝 Active Dealer Bids:**")
-                                for _, bid in bids_df.iterrows():
-                                    b_time = datetime.strptime(str(bid['offer_date']), "%Y-%m-%d %H:%M:%S").strftime("%d %b")
-                                    st.markdown(f"<span style='color: #00ADB5; font-weight: bold; font-size: 0.9em;'>- {bid['dealer_name']}: ₹{int(bid['offer_price']):,}</span> <i style='font-size: 0.8em;'>({b_time})</i>", unsafe_allow_html=True)
-
+                            # 5. Dealer Matches & Warnings
+                            if has_match and show_matcher:
+                                st.markdown(f"<div style='background-color: #FFF9C4; padding: 4px 8px; border-radius: 4px; border: 1px solid #FBC02D; margin-bottom: 8px;'><strong style='color: #D84315; font-size: 0.85em;'>🌟 {len(matches)} DEALER MATCHES FOUND</strong></div>", unsafe_allow_html=True)
+                            
                             if pd.notna(row['followup_time']) and row['followup_time']:
                                 f_time = datetime.strptime(row['followup_time'], "%Y-%m-%d %H:%M:%S")
                                 now_time = datetime.now()
                                 reason_text = f" [{row['followup_reason']}]" if 'followup_reason' in row and pd.notna(row['followup_reason']) and row['followup_reason'] else ""
-
                                 if f_time > now_time:
                                     diff = f_time - now_time
                                     hrs, remainder = divmod(diff.seconds, 3600)
@@ -365,7 +355,6 @@ with tab_active:
 
                             if row['is_duplicate'] and show_duplicates:
                                 st.markdown(f"<div style='color: #FF5252; font-size: 0.85em; font-weight: bold; margin-bottom: 4px;'>⚠️ DUPLICATE FOUND</div>", unsafe_allow_html=True)
-
                             st.divider()
 
                             rc1, rc2 = st.columns([5, 1])
