@@ -223,9 +223,11 @@ st.divider()
 selected_ra = st.radio("👤 View Leads For:", ["All", "Faiz", "Sudhir"], horizontal=True)
 
 if selected_ra != "All" and not df.empty:
-    col_name = 'ra_name' if 'ra_name' in df.columns else 'ra_assigned'
-    if col_name in df.columns:
-        df = df[df[col_name].astype(str).str.contains(selected_ra, case=False, na=False)]
+    # Search for the RA's name in BOTH the Google Sheet column and the CRM Edit menu
+    df = df[
+        df.get('ra_name', '').astype(str).str.contains(selected_ra, case=False, na=False) |
+        df.get('ra_assigned', '').astype(str).str.contains(selected_ra, case=False, na=False)
+    ]
 
 # --- COMPACT PIPELINE METRICS BANNER ---
 if not df.empty:
