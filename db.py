@@ -36,14 +36,14 @@ def init_db():
     # except Exception as e:
     #     print(f"Database init error: {e}")
     # 2. Create secondary tables while connection is open
-    c.execute('''CREATE TABLE IF NOT EXISTS dealer_offers (
+c.execute('''CREATE TABLE IF NOT EXISTS dealer_offers (
         id SERIAL PRIMARY KEY,
         vehicle_no TEXT, dealer_name TEXT, offer_price TEXT, offer_date TEXT
     )''')
-    c.execute('''CREATE TABLE IF NOT EXISTS historical_deals (
+c.execute('''CREATE TABLE IF NOT EXISTS historical_deals (
         id SERIAL PRIMARY KEY, make_model TEXT, year TEXT, closed_price INTEGER
     )''')
-    c.execute('''CREATE TABLE IF NOT EXISTS dealer_preferences (
+c.execute('''CREATE TABLE IF NOT EXISTS dealer_preferences (
         id SERIAL PRIMARY KEY,dealer_name TEXT, budget_max INTEGER, preferred_make TEXT, preferred_fuel TEXT, preferred_city TEXT
     )''')
     # 3. Ensure UI-specific columns exist
