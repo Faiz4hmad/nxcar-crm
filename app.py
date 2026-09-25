@@ -296,85 +296,90 @@ with tab_active:
 
                     with cols[j]:
                         with st.container(border=True):
-                            # 1. Header: Car Name & Badge
-                            curr_ra = row.get('ra_name', 'Unassigned')
-                            if pd.isna(curr_ra) or curr_ra == "": curr_ra = "Unassigned"
-                            badge_color = "#10B981" if curr_ra != "Unassigned" else "#FF5252"
-                            st.markdown(f"#### 🏎️ {row['make_model']} &nbsp;<span style='background:{badge_color};color:white;padding:2px 8px;border-radius:10px;font-size:0.6em;vertical-align:middle;'>{curr_ra}</span>", unsafe_allow_html=True)
-
-                            # 2. Seller Info
-                            st.markdown(f"**👤 {row['seller_name']}** &nbsp;📞 `{row['phone_number']}`<br/>"
-                                        f"<span style='color:gray;font-size:0.85em;'>📍 {row['city']} (RTO: {rto_code}) &nbsp;|&nbsp; ID: {v_no} &nbsp;|&nbsp; Expires: {row['days_left']} Days</span>", 
-                                        unsafe_allow_html=True)
-
-                            # 3. Specs Block (Shaded Box)
-                            st.markdown(f"""
-                                <div style='background-color: rgba(128,128,128,0.05); padding: 8px 12px; border-radius: 6px; margin: 10px 0; font-size: 0.9em; border-left: 3px solid #00ADB5;'>
-                                    📅 <b>{row['year']}</b> ({car_age} yrs) &nbsp;&nbsp;|&nbsp;&nbsp; 🛣️ <b>{row['km_driven']} km</b> <br/>
-                                    ⛽ <b>{row['fuel_type']}</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp; 🔑 <b>{row['ownership']}</b> 
-                                </div>
-                            """, unsafe_allow_html=True)
-
-                            # 4. Pricing & Stage
-                            bids_df = get_vehicle_bids(v_no)
-                            max_bid = int(bids_df['offer_price'].max()) if not bids_df.empty else 0
-                            price_diff = seller_ask - max_bid if max_bid > 0 else 0
-
-                            ask_display = f"<b>₹{seller_ask:,}</b>"
-                            if pd.notna(row.get('expectation_history')) and row.get('expectation_history'):
-                                old_prices = re.findall(r'₹(\d+)\s*➡️', row.get('expectation_history'))
-                                if old_prices:
-                                    seen = set()
-                                    ordered_old = [p for p in old_prices if not (p in seen or seen.add(p))]
-                                    strike_html = " ".join([f"<s>₹{int(p):,}</s>" for p in ordered_old])
-                                    ask_display = f"<span style='color:#FF5252; font-size:0.9em; margin-right: 6px;'>{strike_html}</span><b>₹{seller_ask:,}</b>"
-
-                            if max_bid > 0:
-                                bid_display = f"💵 Bid: <b>₹{max_bid:,}</b> <span style='color:#10B981; font-size:0.9em;'>(Gap: ₹{price_diff:,})</span>"
-                            else:
-                                bid_display = f"📌 Stage: <span style='color:#00B4D8; font-weight:bold;'>{row['calling_status']}</span>"
-
-                            st.markdown(f"<div style='font-size: 1.05em; margin-bottom: 8px;'>💰 Ask: {ask_display} &nbsp;&nbsp;|&nbsp;&nbsp; {bid_display}</div>", unsafe_allow_html=True)
-
-                            # 5. Dealer Matches & Warnings
-                            if has_match and show_matcher:
-                                st.markdown(f"<div style='background-color: #FFF9C4; padding: 4px 8px; border-radius: 4px; border: 1px solid #FBC02D; margin-bottom: 8px;'><strong style='color: #D84315; font-size: 0.85em;'>🌟 {len(matches)} DEALER MATCHES FOUND</strong></div>", unsafe_allow_html=True)
+                            # Split the card into Left (Information) and Right (Actions)
+                            info_col, action_col = st.columns([4, 1.5])
                             
-                            if pd.notna(row['followup_time']) and row['followup_time']:
-                                f_time = datetime.strptime(row['followup_time'], "%Y-%m-%d %H:%M:%S")
-                                now_time = datetime.now()
-                                reason_text = f" [{row['followup_reason']}]" if 'followup_reason' in row and pd.notna(row['followup_reason']) and row['followup_reason'] else ""
-                                if f_time > now_time:
-                                    diff = f_time - now_time
-                                    hrs, remainder = divmod(diff.seconds, 3600)
-                                    mins, _ = divmod(remainder, 60)
-                                    time_str = f"{diff.days}d {hrs}h {mins}m" if diff.days > 0 else f"{hrs}h {mins}m"
-                                    st.markdown(f"<div style='color: #FFC107; font-size: 0.85em; font-weight: bold; margin-bottom: 4px;'>⏰ Follow-up in: {time_str}{reason_text}</div>", unsafe_allow_html=True)
+                            with info_col:
+                                # 1. Header: Car Name & Badge
+                                curr_ra = row.get('ra_name', 'Unassigned')
+                                if pd.isna(curr_ra) or curr_ra == "": curr_ra = "Unassigned"
+                                badge_color = "#10B981" if curr_ra != "Unassigned" else "#FF5252"
+                                st.markdown(f"#### 🏎️ {row['make_model']} &nbsp;<span style='background:{badge_color};color:white;padding:2px 8px;border-radius:10px;font-size:0.6em;vertical-align:middle;'>{curr_ra}</span>", unsafe_allow_html=True)
+
+                                # 2. Seller Info
+                                st.markdown(f"**👤 {row['seller_name']}** &nbsp;📞 `{row['phone_number']}`<br/>"
+                                            f"<span style='color:gray;font-size:0.85em;'>📍 {row['city']} (RTO: {rto_code}) &nbsp;|&nbsp; ID: {v_no} &nbsp;|&nbsp; Expires: {row['days_left']} Days</span>", 
+                                            unsafe_allow_html=True)
+
+                                # 3. Specs Block (Shaded Box)
+                                st.markdown(f"""
+                                    <div style='background-color: rgba(128,128,128,0.05); padding: 8px 12px; border-radius: 6px; margin: 10px 0 5px 0; font-size: 0.9em; border-left: 3px solid #00ADB5;'>
+                                        📅 <b>{row['year']}</b> ({car_age} yrs) &nbsp;&nbsp;|&nbsp;&nbsp; 🛣️ <b>{row['km_driven']} km</b> <br/>
+                                        ⛽ <b>{row['fuel_type']}</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp; 🔑 <b>{row['ownership']}</b> 
+                                    </div>
+                                """, unsafe_allow_html=True)
+
+                                # 4. Pricing & Stage
+                                bids_df = get_vehicle_bids(v_no)
+                                max_bid = int(bids_df['offer_price'].max()) if not bids_df.empty else 0
+                                price_diff = seller_ask - max_bid if max_bid > 0 else 0
+
+                                ask_display = f"<b>₹{seller_ask:,}</b>"
+                                if pd.notna(row.get('expectation_history')) and row.get('expectation_history'):
+                                    old_prices = re.findall(r'₹(\d+)\s*➡️', row.get('expectation_history'))
+                                    if old_prices:
+                                        seen = set()
+                                        ordered_old = [p for p in old_prices if not (p in seen or seen.add(p))]
+                                        strike_html = " ".join([f"<s>₹{int(p):,}</s>" for p in ordered_old])
+                                        ask_display = f"<span style='color:#FF5252; font-size:0.9em; margin-right: 6px;'>{strike_html}</span><b>₹{seller_ask:,}</b>"
+
+                                if max_bid > 0:
+                                    bid_display = f"💵 Bid: <b>₹{max_bid:,}</b> <span style='color:#10B981; font-size:0.9em;'>(Gap: ₹{price_diff:,})</span>"
                                 else:
-                                    st.markdown(f"<div style='color: #FF5252; font-size: 0.85em; font-weight: bold; margin-bottom: 4px;'>🚨 OVERDUE FOLLOW-UP{reason_text}</div>", unsafe_allow_html=True)
+                                    bid_display = f"📌 Stage: <span style='color:#00B4D8; font-weight:bold;'>{row['calling_status']}</span>"
 
-                            if row['is_duplicate'] and show_duplicates:
-                                st.markdown(f"<div style='color: #FF5252; font-size: 0.85em; font-weight: bold; margin-bottom: 4px;'>⚠️ DUPLICATE FOUND</div>", unsafe_allow_html=True)
-                            st.divider()
+                                st.markdown(f"<div style='font-size: 1.05em; margin-bottom: 8px;'>💰 Ask: {ask_display} &nbsp;&nbsp;|&nbsp;&nbsp; {bid_display}</div>", unsafe_allow_html=True)
 
-                            rc1, rc2 = st.columns([5, 1])
-                            new_remark = rc1.text_input("Remarks", value=row.get('final_remarks', '') if pd.notna(row.get('final_remarks')) else '', key=f"f_rem_{v_no}", placeholder="Add a remark...", label_visibility="collapsed")
-                            if rc2.button("💾 Save", key=f"save_rem_{v_no}", use_container_width=True):
-                                if new_remark != row.get('final_remarks', ''):
-                                    now_str = datetime.now().strftime("%d-%b %I:%M %p")
-                                    rem_hist = row.get('remark_history', '') if pd.notna(row.get('remark_history', '')) else ""
-                                    rem_hist += f"[{now_str}] {new_remark}\n"
-                                    execute_query("UPDATE leads SET final_remarks=%s, remark_history=%s, local_lock=1 WHERE vehicle_no=%s", (new_remark, rem_hist, v_no))
-                                    st.rerun()
+                                # 5. Alerts & Warnings
+                                if has_match and show_matcher:
+                                    st.markdown(f"<div style='background-color: #FFF9C4; padding: 4px 8px; border-radius: 4px; border: 1px solid #FBC02D; margin-bottom: 4px;'><strong style='color: #D84315; font-size: 0.85em;'>🌟 {len(matches)} DEALER MATCHES FOUND</strong></div>", unsafe_allow_html=True)
+                                
+                                if pd.notna(row['followup_time']) and row['followup_time']:
+                                    f_time = datetime.strptime(row['followup_time'], "%Y-%m-%d %H:%M:%S")
+                                    now_time = datetime.now()
+                                    reason_text = f" [{row['followup_reason']}]" if 'followup_reason' in row and pd.notna(row['followup_reason']) and row['followup_reason'] else ""
+                                    if f_time > now_time:
+                                        diff = f_time - now_time
+                                        hrs, remainder = divmod(diff.seconds, 3600)
+                                        mins, _ = divmod(remainder, 60)
+                                        time_str = f"{diff.days}d {hrs}h {mins}m" if diff.days > 0 else f"{hrs}h {mins}m"
+                                        st.markdown(f"<div style='color: #FFC107; font-size: 0.85em; font-weight: bold; margin-bottom: 4px;'>⏰ Follow-up in: {time_str}{reason_text}</div>", unsafe_allow_html=True)
+                                    else:
+                                        st.markdown(f"<div style='color: #FF5252; font-size: 0.85em; font-weight: bold; margin-bottom: 4px;'>🚨 OVERDUE FOLLOW-UP{reason_text}</div>", unsafe_allow_html=True)
 
-                            pop1, pop2, pop3 = st.columns([1, 1, 1.5])
+                                if row['is_duplicate'] and show_duplicates:
+                                    st.markdown(f"<div style='color: #FF5252; font-size: 0.85em; font-weight: bold; margin-bottom: 4px;'>⚠️ DUPLICATE FOUND</div>", unsafe_allow_html=True)
 
-                            with pop1:
+                                # 6. Remarks Box (Tucked neatly at the bottom of the info column)
+                                rc1, rc2 = st.columns([4, 1.5])
+                                new_remark = rc1.text_input("Remarks", value=row.get('final_remarks', '') if pd.notna(row.get('final_remarks')) else '', key=f"f_rem_{v_no}", placeholder="Add a remark...", label_visibility="collapsed")
+                                if rc2.button("💾 Save", key=f"save_rem_{v_no}", use_container_width=True):
+                                    if new_remark != row.get('final_remarks', ''):
+                                        now_str = datetime.now().strftime("%d-%b %I:%M %p")
+                                        rem_hist = row.get('remark_history', '') if pd.notna(row.get('remark_history', '')) else ""
+                                        rem_hist += f"[{now_str}] {new_remark}\n"
+                                        execute_query("UPDATE leads SET final_remarks=%s, remark_history=%s, local_lock=1 WHERE vehicle_no=%s", (new_remark, rem_hist, v_no))
+                                        st.rerun()
+
+                            with action_col:
+                                # Add a tiny bit of vertical spacing so buttons align nicely with the card content
+                                st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+
+                                # Button 1: Edit
                                 with st.popover("✏️ Edit", use_container_width=True):
                                     with st.form(key=f"edit_form_{v_no}"):
                                         pipeline = ["New", "Photos Collected", "Pitched to Dealers", "Negotiation", "Physical Inspection", "Token Done", "RC Transferred", "Payment Done", "Handover"]
                                         c_stat = row['calling_status'] if row['calling_status'] in pipeline else "New"
-
                                         db_ra = row.get('ra_name', 'Unassigned')
                                         if pd.isna(db_ra) or db_ra not in ["Unassigned", "Faiz", "Sudhir"]:
                                             db_ra = "Unassigned"
@@ -383,13 +388,11 @@ with tab_active:
                                         u_status = st.selectbox("Status", pipeline, index=pipeline.index(c_stat) if c_stat in pipeline else 0, key=f"stat_{v_no}")
                                         u_exp = st.text_input("Expectation (₹)", value=row['customer_expectation'], key=f"exp_{v_no}")
 
-                                        submitted = st.form_submit_button("💾 Save Edits", use_container_width=True)
-                                        if submitted:
+                                        if st.form_submit_button("💾 Save Edits", use_container_width=True):
                                             now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
                                             exp_hist = row.get('expectation_history', '') if pd.notna(row.get('expectation_history', '')) else ""
                                             if str(u_exp) != str(row['customer_expectation']):
                                                 exp_hist += f"[{now_str}] ₹{row['customer_expectation']} ➡️ ₹{u_exp}\n"
-
                                             execute_query('''UPDATE leads SET customer_expectation=%s, calling_status=%s, 
                                                              expectation_history=%s, ra_name=%s, local_lock=1 WHERE vehicle_no=%s''', 
                                                             (u_exp, u_status, exp_hist, u_ra, v_no))
@@ -402,9 +405,9 @@ with tab_active:
                                         st.cache_data.clear()
                                         st.rerun()
 
-                            with pop2:
+                                # Button 2: Remind
                                 with st.popover("⏰ Remind", use_container_width=True):
-                                    f_reason = st.selectbox("Reason for Follow-up:", ["Call Back", "Ask for Photos", "Price Negotiation", "Physical Visit", "Other"], key=f"rsn_{v_no}")
+                                    f_reason = st.selectbox("Follow-up Reason:", ["Call Back", "Ask for Photos", "Price Negotiation", "Physical Visit", "Other"], key=f"rsn_{v_no}")
                                     rf1, rf2, rf3 = st.columns(3)
                                     if rf1.button("+2H", key=f"2h_{v_no}", use_container_width=True):
                                         new_time = (datetime.now() + timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S")
@@ -418,24 +421,24 @@ with tab_active:
                                         new_time = (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
                                         execute_query("UPDATE leads SET followup_time=%s, followup_reason=%s, local_lock=1 WHERE vehicle_no=%s", (new_time, st.session_state[f"rsn_{v_no}"], v_no))
                                         st.rerun()
-
                                     st.divider()
-                                    if st.button("✅ Mark Done / Cancel", key=f"cancel_{v_no}", use_container_width=True):
+                                    if st.button("✅ Mark Done", key=f"cancel_{v_no}", use_container_width=True):
                                         execute_query("UPDATE leads SET followup_time=NULL, followup_reason=NULL, local_lock=1 WHERE vehicle_no=%s", (v_no,))
                                         st.rerun()
 
-                            with pop3:
-                                with st.popover("🤝 Match & Bids", use_container_width=True):
+                                # Button 3: Match & Bids
+                                with st.popover("🤝 Bids", use_container_width=True):
                                     if show_matcher and has_match:
-                                        st.success(f"🔥 {len(matches)} Match(es) Found!")
+                                        st.success(f"🔥 {len(matches)} Matches!")
                                         for _, m in matches.iterrows():
                                             st.write(f"- **{m['dealer_name']}** (₹{m['budget_max']:,})")
                                     elif seller_ask <= 0:
-                                        st.write("Enter the seller's expected price to find matches.")
+                                        st.write("Enter expected price for matches.")
                                     else:
                                         st.warning("No matches found.")
 
-                                    st.markdown("**⚡ Add Dealer Bid**")
+                                    st.divider()
+                                    st.markdown("**⚡ Add Bid**")
                                     with st.form(key=f"bid_{v_no}"):
                                         b_dealer = st.text_input("Dealer Name", placeholder="Name")
                                         b_price = st.text_input("Offer Price", placeholder="₹ Amount")
@@ -453,7 +456,6 @@ with tab_active:
                                         for _, bid in bids_df.iterrows():
                                             b_time = datetime.strptime(bid['offer_date'], "%Y-%m-%d %H:%M:%S").strftime("%d %b")
                                             st.markdown(f"- **{bid['dealer_name']}**: ₹{int(bid['offer_price']):,} <i style='font-size:0.8em;'>({b_time})</i>", unsafe_allow_html=True)
-
 with tab_expired:
     st.write("### 📂 Leads Not Converted within 5 Days")
 
