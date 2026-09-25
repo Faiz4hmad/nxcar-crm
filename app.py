@@ -10,6 +10,7 @@ from db import init_db, sync_from_sheets, get_db_connection
 
 st.set_page_config(page_title="Personal LMS", layout="wide", page_icon="🚙", initial_sidebar_state="collapsed")
 os.makedirs("photos", exist_ok=True)
+
 # --- CUSTOM CSS TO REDUCE WHITESPACE & CARD SIZE ---
 st.markdown("""
     <style>
@@ -47,11 +48,18 @@ def upgrade_db_silently():
             conn.rollback()
         finally:
             c.close()
-            # conn.close() removed to protect the cached global connection
     except Exception:
         pass
 
 upgrade_db_silently()
+
+# --- GLOBAL NOTIFICATION SYSTEM ---
+if 'flash_message' not in st.session_state:
+    st.session_state.flash_message = None
+
+if st.session_state.flash_message:
+    st.toast(st.session_state.flash_message)
+    st.session_state.flash_message = None
 
 # --- SECURITY SYSTEM ---
 if "authenticated" not in st.session_state:
@@ -94,7 +102,6 @@ def load_all_data():
     conn = get_db_connection()
     query = "SELECT * FROM leads ORDER BY system_date_added DESC"
     df = pd.read_sql_query(query, conn)
-    # conn.close() removed to protect the cached global connection
     return df
 
 def get_dealer_prefs():
@@ -123,20 +130,15 @@ def calculate_expiry(date_str):
     try:
         if pd.isna(date_str) or not str(date_str).strip():
             return 5
-
         added = pd.to_datetime(str(date_str).strip(), errors='coerce')
         if pd.isna(added):
             return 5
-
         if added.tz is not None:
             added = added.tz_localize(None)
-
         now = pd.Timestamp.now().normalize()
         added = added.normalize()
-
         days_passed = (now - added).days
         remaining = int(5 - days_passed)
-
         return remaining if remaining <= 5 else 5
     except:
         return 5
@@ -172,7 +174,6 @@ with st.sidebar:
         st.session_state.last_sync_time = "Not Synced Yet"
 
     auto_sync = st.selectbox("🔄 Auto-Sync", ["Off", "1 Minute", "5 Minutes", "30 Minutes"], index=3)
-
     if auto_sync != "Off":
         st.caption(f"Last Background Sync: {st.session_state.last_sync_time}")
 
@@ -217,19 +218,18 @@ with col_sync:
             target_sheet = "https://docs.google.com/spreadsheets/d/1Z8JOC7mb7SJ0B8zB1c-M3dDAjRyo-aP4_jzyE2JtgOM/export?format=csv&gid=0"
             sync_from_sheets(target_sheet, st.session_state.current_user)
         st.session_state.last_sync_time = datetime.now().strftime("%I:%M %p")
-        st.toast("Database Synced!")
+        st.session_state.flash_message = "✅ Database Synced Successfully!"
+        st.rerun()
 
 st.divider()
 selected_ra = st.radio("👤 View Leads For:", ["All", "Faiz", "Sudhir"], horizontal=True)
 
 if selected_ra != "All" and not df.empty:
-    # Search for the RA's name in BOTH the Google Sheet column and the CRM Edit menu
     df = df[
         df.get('ra_name', '').astype(str).str.contains(selected_ra, case=False, na=False) |
         df.get('ra_assigned', '').astype(str).str.contains(selected_ra, case=False, na=False)
     ]
 
-# --- COMPACT PIPELINE METRICS BANNER ---
 # --- DASHBOARD METRICS ---
 if not df.empty:
     n_cnt = len(df[df['calling_status'] == 'New'])
@@ -263,6 +263,7 @@ with tab_active:
     else:
         d_target = int(day_filter.split()[0])
         display_df = active_df[(active_df['days_left'] == d_target) & (active_df['calling_status'] != 'Closed')]
+    
     if search_term:
         display_df = display_df[
             display_df['vehicle_no'].astype(str).str.contains(search_term, case=False, na=False) |
@@ -311,7 +312,13 @@ with tab_active:
                                             f"<span style='color:gray;font-size:0.85em;'>📍 {row['city']} (RTO: {rto_code}) &nbsp;|&nbsp; ID: {v_no} &nbsp;|&nbsp; Expires: {row['days_left']} Days</span>", 
                                             unsafe_allow_html=True)
 
-                                # 3. Specs Block (Shaded Box)
+                                # 3. Visual Urgency Progress Bar
+                                urgency_ratio = max(0.0, min(row['days_left'] / 5.0, 1.0))
+                                bar_color = "red" if row['days_left'] <= 1 else "orange" if row['days_left'] <= 2 else "green"
+                                st.markdown(f"<div style='font-size: 0.85em; color: {bar_color}; font-weight: bold;'>⏳ {row['days_left']} Days Until Expiry</div>", unsafe_allow_html=True)
+                                st.progress(urgency_ratio)
+
+                                # 4. Specs Block (Shaded Box)
                                 st.markdown(f"""
                                     <div style='background-color: rgba(128,128,128,0.05); padding: 8px 12px; border-radius: 6px; margin: 10px 0 5px 0; font-size: 0.9em; border-left: 3px solid #00ADB5;'>
                                         📅 <b>{row['year']}</b> ({car_age} yrs) &nbsp;&nbsp;|&nbsp;&nbsp; 🛣️ <b>{row['km_driven']} km</b> <br/>
@@ -319,7 +326,7 @@ with tab_active:
                                     </div>
                                 """, unsafe_allow_html=True)
 
-                                # 4. Pricing & Stage
+                                # 5. Pricing & Color-Coded Stage
                                 bids_df = get_vehicle_bids(v_no)
                                 max_bid = int(bids_df['offer_price'].max()) if not bids_df.empty else 0
                                 price_diff = seller_ask - max_bid if max_bid > 0 else 0
@@ -333,14 +340,22 @@ with tab_active:
                                         strike_html = " ".join([f"<s>₹{int(p):,}</s>" for p in ordered_old])
                                         ask_display = f"<span style='color:#FF5252; font-size:0.9em; margin-right: 6px;'>{strike_html}</span><b>₹{seller_ask:,}</b>"
 
+                                status_colors = {
+                                    "New": "#00B4D8", 
+                                    "Photos Collected": "#845EC2", 
+                                    "Negotiation": "#FF9671", 
+                                    "Closed": "#00C9A7"
+                                }
+                                tag_color = status_colors.get(row['calling_status'], "#606060")
+
                                 if max_bid > 0:
-                                    bid_display = f"💵 Bid: <b>₹{max_bid:,}</b> <span style='color:#10B981; font-size:0.9em;'>(Gap: ₹{price_diff:,})</span>"
+                                    bid_display = f"💵 Bid: <b>₹{max_bid:,}</b> <span style='color:#10B981; font-size:0.9em;'>(Gap: ₹{price_diff:,})</span> &nbsp;|&nbsp; 📌 <span style='color:{tag_color}; font-weight:bold;'>{row['calling_status']}</span>"
                                 else:
-                                    bid_display = f"📌 Stage: <span style='color:#00B4D8; font-weight:bold;'>{row['calling_status']}</span>"
+                                    bid_display = f"📌 Stage: <span style='color:{tag_color}; font-weight:bold;'>{row['calling_status']}</span>"
 
-                                st.markdown(f"<div style='font-size: 1.05em; margin-bottom: 8px;'>💰 Ask: {ask_display} &nbsp;&nbsp;|&nbsp;&nbsp; {bid_display}</div>", unsafe_allow_html=True)
+                                st.markdown(f"<div style='font-size: 1.05em; margin-bottom: 8px;'>💰 Ask: {ask_display} <br/> {bid_display}</div>", unsafe_allow_html=True)
 
-                                # 5. Alerts & Warnings
+                                # 6. Alerts & Warnings
                                 if has_match and show_matcher:
                                     st.markdown(f"<div style='background-color: #FFF9C4; padding: 4px 8px; border-radius: 4px; border: 1px solid #FBC02D; margin-bottom: 4px;'><strong style='color: #D84315; font-size: 0.85em;'>🌟 {len(matches)} DEALER MATCHES FOUND</strong></div>", unsafe_allow_html=True)
                                 
@@ -360,7 +375,12 @@ with tab_active:
                                 if row['is_duplicate'] and show_duplicates:
                                     st.markdown(f"<div style='color: #FF5252; font-size: 0.85em; font-weight: bold; margin-bottom: 4px;'>⚠️ DUPLICATE FOUND</div>", unsafe_allow_html=True)
 
-                                # 6. Remarks Box (Tucked neatly at the bottom of the info column)
+                                # 7. 1-Click Copy Summary
+                                with st.expander("📋 Quick Copy Summary"):
+                                    summary_text = f"{row['make_model']} ({row['year']})\nKM: {row['km_driven']}\nFuel: {row['fuel_type']}\nLoc: {row['city']}\nAsk: ₹{seller_ask:,}"
+                                    st.code(summary_text, language="text")
+
+                                # 8. Remarks Box
                                 rc1, rc2 = st.columns([4, 1.5])
                                 new_remark = rc1.text_input("Remarks", value=row.get('final_remarks', '') if pd.notna(row.get('final_remarks')) else '', key=f"f_rem_{v_no}", placeholder="Add a remark...", label_visibility="collapsed")
                                 if rc2.button("💾 Save", key=f"save_rem_{v_no}", use_container_width=True):
@@ -369,10 +389,10 @@ with tab_active:
                                         rem_hist = row.get('remark_history', '') if pd.notna(row.get('remark_history', '')) else ""
                                         rem_hist += f"[{now_str}] {new_remark}\n"
                                         execute_query("UPDATE leads SET final_remarks=%s, remark_history=%s, local_lock=1 WHERE vehicle_no=%s", (new_remark, rem_hist, v_no))
+                                        st.session_state.flash_message = "📝 Remark saved successfully!"
                                         st.rerun()
 
                             with action_col:
-                                # Add a tiny bit of vertical spacing so buttons align nicely with the card content
                                 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
                                 # Button 1: Edit
@@ -397,12 +417,14 @@ with tab_active:
                                                              expectation_history=%s, ra_name=%s, local_lock=1 WHERE vehicle_no=%s''', 
                                                             (u_exp, u_status, exp_hist, u_ra, v_no))
                                             st.cache_data.clear()
+                                            st.session_state.flash_message = f"🔄 Stage updated to {u_status}!"
                                             st.rerun()
 
                                     st.divider()
                                     if st.button("🗑️ Delete Lead", key=f"del_{v_no}", use_container_width=True):
                                         execute_query("UPDATE leads SET calling_status='Deleted', local_lock=1 WHERE vehicle_no=%s", (v_no,))
                                         st.cache_data.clear()
+                                        st.session_state.flash_message = "🗑️ Lead deleted."
                                         st.rerun()
 
                                 # Button 2: Remind
@@ -412,18 +434,22 @@ with tab_active:
                                     if rf1.button("+2H", key=f"2h_{v_no}", use_container_width=True):
                                         new_time = (datetime.now() + timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S")
                                         execute_query("UPDATE leads SET followup_time=%s, followup_reason=%s, local_lock=1 WHERE vehicle_no=%s", (new_time, st.session_state[f"rsn_{v_no}"], v_no))
+                                        st.session_state.flash_message = "⏰ Reminder set for 2 hours!"
                                         st.rerun()
                                     if rf2.button("+4H", key=f"4h_{v_no}", use_container_width=True):
                                         new_time = (datetime.now() + timedelta(hours=4)).strftime("%Y-%m-%d %H:%M:%S")
                                         execute_query("UPDATE leads SET followup_time=%s, followup_reason=%s, local_lock=1 WHERE vehicle_no=%s", (new_time, st.session_state[f"rsn_{v_no}"], v_no))
+                                        st.session_state.flash_message = "⏰ Reminder set for 4 hours!"
                                         st.rerun()
                                     if rf3.button("+24H", key=f"24h_{v_no}", use_container_width=True):
                                         new_time = (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
                                         execute_query("UPDATE leads SET followup_time=%s, followup_reason=%s, local_lock=1 WHERE vehicle_no=%s", (new_time, st.session_state[f"rsn_{v_no}"], v_no))
+                                        st.session_state.flash_message = "⏰ Reminder set for Tomorrow!"
                                         st.rerun()
                                     st.divider()
                                     if st.button("✅ Mark Done", key=f"cancel_{v_no}", use_container_width=True):
                                         execute_query("UPDATE leads SET followup_time=NULL, followup_reason=NULL, local_lock=1 WHERE vehicle_no=%s", (v_no,))
+                                        st.session_state.flash_message = "✅ Reminder cleared!"
                                         st.rerun()
 
                                 # Button 3: Match & Bids
@@ -448,6 +474,7 @@ with tab_active:
                                                 execute_query("INSERT INTO dealer_offers (vehicle_no, dealer_name, offer_price, offer_date) VALUES (%s,%s,%s,%s)", 
                                                               (v_no, b_dealer, clean_price(b_price), bid_time))
                                                 execute_query("UPDATE leads SET local_lock=1 WHERE vehicle_no=%s", (v_no,))
+                                                st.session_state.flash_message = f"🤝 Bid of ₹{clean_price(b_price):,} added!"
                                                 st.rerun()
 
                                     if not bids_df.empty:
@@ -456,13 +483,13 @@ with tab_active:
                                         for _, bid in bids_df.iterrows():
                                             b_time = datetime.strptime(bid['offer_date'], "%Y-%m-%d %H:%M:%S").strftime("%d %b")
                                             st.markdown(f"- **{bid['dealer_name']}**: ₹{int(bid['offer_price']):,} <i style='font-size:0.8em;'>({b_time})</i>", unsafe_allow_html=True)
+
 with tab_expired:
     st.write("### 📂 Leads Not Converted within 5 Days")
-
     col_exp1, col_exp2 = st.columns([7, 3])
     with col_exp1:
         if not expired_df.empty and 'vehicle_no' in expired_df.columns:
-                st.dataframe(expired_df[['vehicle_no', 'make_model', 'customer_expectation', 'seller_name', 'phone_number']], use_container_width=True)
+            st.dataframe(expired_df[['vehicle_no', 'make_model', 'customer_expectation', 'seller_name', 'phone_number']], use_container_width=True)
     with col_exp2:
         st.info("Want to continue working a lead? Enter the Vehicle Number below to reset its 5-day timer and push it back to the Active Pipeline.")
         with st.form("revive_form"):
@@ -470,7 +497,7 @@ with tab_expired:
             if st.form_submit_button("🔄 Revive Lead", use_container_width=True):
                 if revive_vno:
                     execute_query("UPDATE leads SET system_date_added=CURRENT_TIMESTAMP, local_lock=1 WHERE vehicle_no=%s", (revive_vno.strip(),))
-                    st.success("Lead Revived!")
+                    st.session_state.flash_message = "🔄 Lead Revived!"
                     st.rerun()
 
 with tab_crm:
@@ -491,7 +518,7 @@ with tab_crm:
                         INSERT INTO dealer_preferences (dealer_name, budget_max, preferred_make, preferred_fuel, preferred_city)
                         VALUES (%s, %s, %s, %s, %s)
                     ''', (d_name, clean_price(d_budget), d_make, d_fuel, d_rto))
-                    st.success(f"{d_name} added to Network!")
+                    st.session_state.flash_message = f"👥 {d_name} added to Network!"
                     st.rerun()
                 else:
                     st.error("Name and Budget are required.")
@@ -507,6 +534,8 @@ with tab_crm:
         if not bids_df.empty:
             bid_counts = bids_df.groupby('dealer_name').size().reset_index(name='Total Bids Placed')
             bid_counts = bid_counts.sort_values(by='Total Bids Placed', ascending=False)
-            st.dataframe(bid_counts, use_container_width=True)
+            
+            # Interactive Bar Chart for better Analytics visual
+            st.bar_chart(data=bid_counts, x='dealer_name', y='Total Bids Placed', color="#00ADB5")
         else:
             st.write("No bids recorded yet. Add bids via the Match Dealer popover to track activity.")
