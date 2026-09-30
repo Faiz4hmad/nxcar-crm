@@ -85,6 +85,10 @@ if not st.session_state.authenticated:
                     st.session_state.authenticated = True
                     st.session_state.current_user = "Sudhir"
                     st.rerun()
+                elif user_email == "soumen.das@nxcar.in" and user_pass == "9232188426":
+                    st.session_state.authenticated = True
+                    st.session_state.current_user = "Soumen"
+                    st.rerun()
                 else:
                     st.error("Incorrect credentials.")
     st.stop()
@@ -222,13 +226,23 @@ with col_sync:
         st.rerun()
 
 st.divider()
-selected_ra = st.radio("👤 View Leads For:", ["All", "Faiz", "Sudhir"], horizontal=True)
+
+# --- FILTERS: RA & REGION ---
+filt_col1, filt_col2 = st.columns(2)
+with filt_col1:
+    selected_ra = st.radio("👤 View Leads For:", ["All", "Faiz", "Sudhir", "Soumen"], horizontal=True)
+with filt_col2:
+    region_filter = st.radio("📍 Region:", ["All", "Kolkata (WB)"], horizontal=True)
 
 if selected_ra != "All" and not df.empty:
     df = df[
         df.get('ra_name', '').astype(str).str.contains(selected_ra, case=False, na=False) |
         df.get('ra_assigned', '').astype(str).str.contains(selected_ra, case=False, na=False)
     ]
+
+if region_filter == "Kolkata (WB)" and not df.empty:
+    # Filter for Vehicle Numbers starting with 'WB'
+    df = df[df['vehicle_no'].astype(str).str.upper().str.startswith('WB')]
 
 # --- DASHBOARD METRICS ---
 if not df.empty:
@@ -401,10 +415,10 @@ with tab_active:
                                         pipeline = ["New", "Photos Collected", "Pitched to Dealers", "Negotiation", "Physical Inspection", "Token Done", "RC Transferred", "Payment Done", "Handover"]
                                         c_stat = row['calling_status'] if row['calling_status'] in pipeline else "New"
                                         db_ra = row.get('ra_name', 'Unassigned')
-                                        if pd.isna(db_ra) or db_ra not in ["Unassigned", "Faiz", "Sudhir"]:
+                                        if pd.isna(db_ra) or db_ra not in ["Unassigned", "Faiz", "Sudhir", "Soumen"]:
                                             db_ra = "Unassigned"
 
-                                        u_ra = st.selectbox("Assign RA:", ["Unassigned", "Faiz", "Sudhir"], index=["Unassigned", "Faiz", "Sudhir"].index(db_ra) if db_ra in ["Unassigned", "Faiz", "Sudhir"] else 0, key=f"ra_{v_no}")
+                                        u_ra = st.selectbox("Assign RA:", ["Unassigned", "Faiz", "Sudhir", "Soumen"], index=["Unassigned", "Faiz", "Sudhir", "Soumen"].index(db_ra) if db_ra in ["Unassigned", "Faiz", "Sudhir", "Soumen"] else 0, key=f"ra_{v_no}")
                                         u_status = st.selectbox("Status", pipeline, index=pipeline.index(c_stat) if c_stat in pipeline else 0, key=f"stat_{v_no}")
                                         u_exp = st.text_input("Expectation (₹)", value=row['customer_expectation'], key=f"exp_{v_no}")
 
