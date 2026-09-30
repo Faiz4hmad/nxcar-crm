@@ -244,6 +244,14 @@ if region_filter == "Kolkata (WB)" and not df.empty:
     # Filter for Vehicle Numbers starting with 'WB'
     df = df[df['vehicle_no'].astype(str).str.upper().str.startswith('WB')]
 
+# Re-sync the Active and Expired tabs to respect the filters above
+if not df.empty:
+    active_df = df[(df['days_left'] > 0) | (df['calling_status'] == 'Closed')]
+    expired_df = df[(df['days_left'] <= 0) & (df['calling_status'] != 'Closed')]
+else:
+    active_df = pd.DataFrame()
+    expired_df = pd.DataFrame()
+
 # --- DASHBOARD METRICS ---
 if not df.empty:
     n_cnt = len(df[df['calling_status'] == 'New'])
